@@ -52,49 +52,31 @@ The native launcher starts as a regular user and requests `sudo` only for tempor
 
 Use Linux Docker Engine. Host networking routes client traffic only; Windows can be a client but cannot host this backend.
 
-The container requires `OBWEB_LAN_INTERFACE` (the Linux interface connected to the client LAN) and `OBWEB_USERNAME`. The example below lists every configurable `OBWEB_*` container variable. Remove the `#` before an optional `-e` line to use it; Compose users can place the same variables under `environment:`. `OBWEB_RUN_MODE` is internal and set automatically.
+The container requires `OBWEB_LAN_INTERFACE` (the Linux interface connected to the client LAN) and `OBWEB_USERNAME`. `OBWEB_RUN_MODE` is internal and set automatically. Compose users can pass the same variables under `environment:`.
 
 Docker creates the named volume on first use and keeps it between runs. The network namespace directory is created inside the container.
 
 ```bash
-docker_args=(
-  --rm --network host
-  --cap-add NET_ADMIN --cap-add SYS_ADMIN
-  --device /dev/net/tun:/dev/net/tun
-  --security-opt seccomp=unconfined
-  --mount type=volume,src=obweb-bridge-data,dst=/var/lib/obweb-bridge
-  -e OBWEB_LAN_INTERFACE=wlp2s0
-  -e OBWEB_USERNAME=your_username
-
-  # OPTIONAL: use when this interface has multiple local IPv4 addresses.
-  # Example: -e OBWEB_LAN_IP=192.168.1.10
-  # -e OBWEB_LAN_IP=192.168.1.10
-
-  # OPTIONAL: restrict forwarding to one client IPv4 address.
-  # Example: -e OBWEB_CLIENT_IP=192.168.1.114
-  # -e OBWEB_CLIENT_IP=192.168.1.114
-
-  # OPTIONAL: import an existing account; replace with the complete code from Settings > Online > Show my code.
-  # Example: -e OBWEB_REO_CODE='REO1-username-<32-hex-characters>'
-  # -e OBWEB_REO_CODE='REO1-username-<32-hex-characters>'
-
-  # OPTIONAL: override the default WSS endpoint.
-  # Example: -e OBWEB_WSS_URL=wss://outbreakweb.com/eth
-  # -e OBWEB_WSS_URL=wss://outbreakweb.com/eth
-
-  # OPTIONAL: override the default WSS origin.
-  # Example: -e OBWEB_WSS_ORIGIN=https://outbreakweb.com
-  # -e OBWEB_WSS_ORIGIN=https://outbreakweb.com
-
-  # OPTIONAL: change the runtime state directory inside the container; keep it under /var/lib/obweb-bridge to persist it.
-  # Example: -e OBWEB_RUNTIME_DIR=/var/lib/obweb-bridge/runtime
-  # -e OBWEB_RUNTIME_DIR=/var/lib/obweb-bridge/runtime
-)
-
-docker run "${docker_args[@]}" ghcr.io/zenaror/obweb-bridge:latest
+docker run --rm --network host \
+  --cap-add NET_ADMIN --cap-add SYS_ADMIN \
+  --device /dev/net/tun:/dev/net/tun \
+  --security-opt seccomp=unconfined \
+  --mount type=volume,src=obweb-bridge-data,dst=/var/lib/obweb-bridge \
+  -e OBWEB_LAN_INTERFACE=wlp2s0 \
+  -e OBWEB_USERNAME=your_username \
+  ghcr.io/zenaror/obweb-bridge:latest
 ```
 
 Replace `wlp2s0` with your Linux interface name. Omit the REO code to create a new account; the code's username must match `OBWEB_USERNAME`. The container prints the game credentials. An existing username without a matching code produces an error. The `obweb-bridge-data` Docker volume keeps account and cleanup state between runs; add `--cleanup` after the image name to recover from a forced stop. Pull requests build the image; pushes to `main` and version tags publish it.
+
+Add these `-e` flags before the image name only when needed:
+
+- **OPTIONAL** — `-e OBWEB_LAN_IP=192.168.1.10` when the selected interface has multiple local IPv4 addresses.
+- **OPTIONAL** — `-e OBWEB_CLIENT_IP=192.168.1.114` to restrict forwarding to one client address.
+- **OPTIONAL** — `-e OBWEB_REO_CODE='REO1-username-<32-hex-characters>'` to import an existing account using the complete code from **Settings > Online > Show my code**.
+- **OPTIONAL** — `-e OBWEB_WSS_URL=wss://outbreakweb.com/eth` to override the default WSS endpoint.
+- **OPTIONAL** — `-e OBWEB_WSS_ORIGIN=https://outbreakweb.com` to override the default WSS origin.
+- **OPTIONAL** — `-e OBWEB_RUNTIME_DIR=/var/lib/obweb-bridge/runtime` to change the runtime state path; keep it inside `/var/lib/obweb-bridge` so the Docker volume persists it.
 
 The launcher prepares the Outbreak Web login, shows a network plan, and asks for `sudo` to enable temporary routing. Wait for **READY**. The login helper can create a username or import an existing account with its transfer code; it displays the game password for manual entry. Keep that screen private.
 
