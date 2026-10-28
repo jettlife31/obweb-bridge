@@ -1,5 +1,7 @@
 # obweb-bridge
 
+[English](README.md) · [Português (Brasil)](README.PTBR.md) · [Español](README.ES.md)
+
 A Linux IPv4 gateway that carries client traffic to Outbreak Web over its Ethernet WebSocket transport. Clients can be ARMSX2 on Android, a physical PS2, or another computer on the same LAN. The emulator does not need to be modified. Windows and WSL2 host backends are not implemented yet.
 
 ## Setup
