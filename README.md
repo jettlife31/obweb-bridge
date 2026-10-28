@@ -78,7 +78,7 @@ docker run --rm -it --network host \
   ghcr.io/zenaror/obweb-bridge:latest
 ```
 
-The image stores account credentials and interrupted-run cleanup state under `/var/lib/obweb-bridge`. Keep this directory between runs. `OBWEB_CLIENT_IP`, `OBWEB_WSS_URL`, and `OBWEB_WSS_ORIGIN` can also be passed with `-e`. On a pull request, GitHub Actions builds the image without publishing it. Pushes to `main` publish `latest`, `main`, and a commit tag; version tags publish versioned images. Make the GHCR package public in its GitHub package settings if other users need to pull it without signing in.
+The image stores account credentials and interrupted-run cleanup state under `/var/lib/obweb-bridge`. Keep this directory between runs. `OBWEB_CLIENT_IP`, `OBWEB_WSS_URL`, and `OBWEB_WSS_ORIGIN` can also be passed with `-e`. On a pull request, GitHub Actions builds the image without publishing it. Pushes to `main` publish `latest`, `main`, and a commit tag; version tags publish versioned images. The GHCR image is public and can be pulled without signing in.
 
 The container needs `NET_ADMIN` to add the client-specific route/firewall rules and `SYS_ADMIN` for the temporary network namespace. The default seccomp filter blocks the namespace operations used by this implementation, so the example disables that filter. Run only an image you trust. If the container is forcibly terminated and does not clean up, recover its saved networking state with:
 
