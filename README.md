@@ -52,25 +52,52 @@ The native launcher starts as a regular user and requests `sudo` only for tempor
 
 Use Linux Docker Engine. Host networking routes client traffic only; Windows can be a client but cannot host this backend.
 
-Pass `OBWEB_LAN_INTERFACE` and `OBWEB_USERNAME` as container environment variables. With Compose, set them under `environment:`. Add optional `OBWEB_REO_CODE` from **Settings > Online > Show my code** to import an existing account; omit it to create a new one. The code username must match `OBWEB_USERNAME`. The container prints the game credentials; an existing username without a matching code produces an error.
+The container requires `OBWEB_LAN_INTERFACE` (the Linux interface connected to the client LAN) and `OBWEB_USERNAME`. The example below lists every configurable `OBWEB_*` container variable. Remove the `#` before an optional `-e` line to use it; Compose users can place the same variables under `environment:`. `OBWEB_RUN_MODE` is internal and set automatically.
 
-Create the persistent data directory and namespace mount point with `sudo mkdir -p /var/lib/obweb-bridge /run/netns`, then run:
+From the project directory, create local persistent folders and run:
 
-```sh
-docker run --rm --network host \
-  --cap-add NET_ADMIN --cap-add SYS_ADMIN \
-  --device /dev/net/tun:/dev/net/tun \
-  --security-opt seccomp=unconfined \
-  --mount type=bind,src=/run/netns,dst=/run/netns,bind-propagation=rshared \
-  --mount type=bind,src=/var/lib/obweb-bridge,dst=/var/lib/obweb-bridge \
-  -e OBWEB_LAN_INTERFACE=wlp2s0 \
-  -e OBWEB_USERNAME=your_username \
-  ghcr.io/zenaror/obweb-bridge:latest
+```bash
+mkdir -p ./bridge-data ./netns
+
+docker_args=(
+  --rm --network host
+  --cap-add NET_ADMIN --cap-add SYS_ADMIN
+  --device /dev/net/tun:/dev/net/tun
+  --security-opt seccomp=unconfined
+  --mount "type=bind,src=$PWD/netns,dst=/run/netns,bind-propagation=rshared"
+  --mount "type=bind,src=$PWD/bridge-data,dst=/var/lib/obweb-bridge"
+  -e OBWEB_LAN_INTERFACE=wlp2s0
+  -e OBWEB_USERNAME=your_username
+
+  # OPTIONAL: use when this interface has multiple local IPv4 addresses.
+  # Example: -e OBWEB_LAN_IP=192.168.1.10
+  # -e OBWEB_LAN_IP=192.168.1.10
+
+  # OPTIONAL: restrict forwarding to one client IPv4 address.
+  # Example: -e OBWEB_CLIENT_IP=192.168.1.114
+  # -e OBWEB_CLIENT_IP=192.168.1.114
+
+  # OPTIONAL: import an existing account; replace with the complete code from Settings > Online > Show my code.
+  # Example: -e OBWEB_REO_CODE='REO1-username-<32-hex-characters>'
+  # -e OBWEB_REO_CODE='REO1-username-<32-hex-characters>'
+
+  # OPTIONAL: override the default WSS endpoint.
+  # Example: -e OBWEB_WSS_URL=wss://outbreakweb.com/eth
+  # -e OBWEB_WSS_URL=wss://outbreakweb.com/eth
+
+  # OPTIONAL: override the default WSS origin.
+  # Example: -e OBWEB_WSS_ORIGIN=https://outbreakweb.com
+  # -e OBWEB_WSS_ORIGIN=https://outbreakweb.com
+
+  # OPTIONAL: change the runtime state directory inside the container; keep it under /var/lib/obweb-bridge to persist it.
+  # Example: -e OBWEB_RUNTIME_DIR=/var/lib/obweb-bridge/runtime
+  # -e OBWEB_RUNTIME_DIR=/var/lib/obweb-bridge/runtime
+)
+
+docker run "${docker_args[@]}" ghcr.io/zenaror/obweb-bridge:latest
 ```
 
-For an existing account, add `-e OBWEB_REO_CODE='REO1-username-<32-hex-characters>'` and replace the placeholder with the complete code. Omit it to create a new account. Replace `wlp2s0` with your Linux interface name. Add `-e OBWEB_LAN_IP=192.168.1.10` only if the interface has multiple local IPv4 addresses.
-
-The network capabilities are required for forwarding. Keep `/var/lib/obweb-bridge` between runs; add `--cleanup` after the image name to recover from a forced stop. `OBWEB_CLIENT_IP`, `OBWEB_WSS_URL`, and `OBWEB_WSS_ORIGIN` are optional container variables. Pull requests build the image; pushes to `main` and version tags publish it.
+Replace `wlp2s0` with your Linux interface name. Omit the REO code to create a new account; the code's username must match `OBWEB_USERNAME`. The container prints the game credentials. An existing username without a matching code produces an error. Keep `./bridge-data` between runs; add `--cleanup` after the image name to recover from a forced stop. Pull requests build the image; pushes to `main` and version tags publish it.
 
 The launcher prepares the Outbreak Web login, shows a network plan, and asks for `sudo` to enable temporary routing. Wait for **READY**. The login helper can create a username or import an existing account with its transfer code; it displays the game password for manual entry. Keep that screen private.
 

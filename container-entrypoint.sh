@@ -29,11 +29,16 @@ mkdir -p "$LOGIN_STATE" "$(dirname "${OBWEB_RUNTIME_DIR:-/var/lib/obweb-bridge/r
 chown obweb:obweb "$STATE_HOME" "$LOGIN_STATE"
 
 LAN_INTERFACE=$OBWEB_LAN_INTERFACE
+set -- --lan-interface "$LAN_INTERFACE"
+if [ -n "${OBWEB_LAN_IP:-}" ]; then set -- "$@" --lan-ip "$OBWEB_LAN_IP"; fi
+if [ -n "${OBWEB_CLIENT_IP:-}" ]; then set -- "$@" --client-ip "$OBWEB_CLIENT_IP"; fi
+if [ -n "${OBWEB_WSS_URL:-}" ]; then set -- "$@" --url "$OBWEB_WSS_URL"; fi
+if [ -n "${OBWEB_WSS_ORIGIN:-}" ]; then set -- "$@" --origin "$OBWEB_WSS_ORIGIN"; fi
 
-python /app/gateway.py --lan-interface "$LAN_INTERFACE"
+python /app/gateway.py "$@"
 runuser -u obweb -- env HOME=/home/obweb XDG_STATE_HOME="$STATE_HOME" \
   OBWEB_RUN_MODE=container \
   OBWEB_USERNAME="$OBWEB_USERNAME" OBWEB_REO_CODE="${OBWEB_REO_CODE:-}" \
   python /app/login_web.py
 echo 'Forwarded client IPv4 traffic will use WSS. Press Ctrl+C to stop.'
-exec python /app/gateway.py --lan-interface "$LAN_INTERFACE" --run
+exec python /app/gateway.py "$@" --run
