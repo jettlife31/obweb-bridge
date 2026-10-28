@@ -2,6 +2,7 @@
 """Outbreak Web gateway prototype, clients on the selected LAN. Default action is a read-only plan."""
 import argparse
 import asyncio
+from datetime import datetime
 import ipaddress
 import json
 import os
@@ -19,6 +20,11 @@ from wire import acquire_lease, inbound
 WSS_URL = "wss://outbreakweb.com/eth"
 WSS_ORIGIN = "https://outbreakweb.com"
 
+def log(message, *, file=sys.stdout, flush=True):
+    timestamp = datetime.now().astimezone().isoformat(timespec='seconds')
+    print(f'[{timestamp}] {message}', file=file, flush=flush)
+
+
 def connection(url, origin=None):
     try:
         from websockets.asyncio.client import connect
@@ -32,10 +38,10 @@ def connection(url, origin=None):
 async def probe(url, origin):
     mac = b'\x02' + secrets.token_bytes(5)
     async with connection(url, origin) as ws:
-        print('WebSocket connected; requesting a new DHCP lease.')
+        log('WebSocket connected; requesting a new DHCP lease.')
         lease = await acquire_lease(ws, mac)
-        print(f'DHCP confirmed: IPv4={lease.address}/{lease.prefix}, gateway={lease.gateway}, DNS={lease.dns}; duration={lease.seconds}s.')
-        print('This only verifies WebSocket/DHCP, not login or multiplayer.')
+        log(f'DHCP confirmed: IPv4={lease.address}/{lease.prefix}, gateway={lease.gateway}, DNS={lease.dns}; duration={lease.seconds}s.')
+        log('This only verifies WebSocket/DHCP, not login or multiplayer.')
 
 
 async def relay(ws, fd, mac, lease, stop, dns_resolver=None):
@@ -78,7 +84,7 @@ async def relay(ws, fd, mac, lease, stop, dns_resolver=None):
     async def status():
         while True:
             await asyncio.sleep(30)
-            print(f"Frames: sent={counts['sent']} received={counts['received']} dropped={counts['rejected']}" + (f" | DNS-WSS: {dns_resolver.counts}" if dns_resolver else ''), flush=True)
+            log(f"Frames: sent={counts['sent']} received={counts['received']} dropped={counts['rejected']}" + (f" | DNS-WSS: {dns_resolver.counts}" if dns_resolver else ''))
 
     async def expiry():
         # Renewal changes routing and needs more live evidence; never keep using an expired lease.
@@ -110,20 +116,38 @@ async def run(c, url, origin):
         loop.add_signal_handler(signum, stop.set)
     try:
         resolver = Resolver(c['client_network'], namespace_socket)
-        dns_udp, _ = await loop.create_datagram_endpoint(lambda: DNSDatagrams(resolver),
-                                                        local_addr=(c['linux_ip'], 53))
-        dns_tcp = await asyncio.start_server(resolver.tcp, c['linux_ip'], 53, limit=8192)
-        network.setup(mac)
+        try:
+            dns_udp, _ = await loop.create_datagram_endpoint(lambda: DNSDatagrams(resolver),
+                                                            local_addr=(c['linux_ip'], 53))
+        except OSError as exc:
+            raise RuntimeError(f'Could not bind the UDP DNS listener on the selected LAN address (OS error {exc.errno}: {exc.strerror})') from None
+        try:
+            dns_tcp = await asyncio.start_server(resolver.tcp, c['linux_ip'], 53, limit=8192)
+        except OSError as exc:
+            raise RuntimeError(f'Could not bind the TCP DNS listener on the selected LAN address (OS error {exc.errno}: {exc.strerror})') from None
+        try:
+            network.setup(mac)
+        except OSError as exc:
+            raise RuntimeError(f'Local network setup failed (OS error {exc.errno}: {exc.strerror})') from None
         # Ctrl+C must also cancel connection/DHCP establishment, before the relay starts.
         async def session():
-            async with connection(url, origin) as ws:
-                lease = await acquire_lease(ws, mac)
-                network.activate(lease)
-                resolver.servers = lease.dns
-                print(f'Remote DHCP: IPv4={lease.address}/{lease.prefix}, gateway={lease.gateway}, DNS={lease.dns}', flush=True)
-                print(f"READY: Client gateway/DNS = {c['linux_ip']}; client network = {c['client_network']}", flush=True)
-                print(f'Virtual lease: {lease.seconds}s; preventive shutdown in {int(lease.seconds * .9)}s.', flush=True)
-                await relay(ws, network.fd, mac, lease, stop, resolver)
+            try:
+                async with connection(url, origin) as ws:
+                    try:
+                        lease = await acquire_lease(ws, mac)
+                    except OSError as exc:
+                        raise RuntimeError(f'WSS/DHCP connection failed (OS error {exc.errno}: {exc.strerror})') from None
+                    try:
+                        network.activate(lease)
+                    except OSError as exc:
+                        raise RuntimeError(f'Local network activation failed (OS error {exc.errno}: {exc.strerror})') from None
+                    resolver.servers = lease.dns
+                    log(f'Remote DHCP: IPv4={lease.address}/{lease.prefix}, gateway={lease.gateway}, DNS={lease.dns}')
+                    log(f"READY: Client gateway/DNS = {c['linux_ip']}; client network = {c['client_network']}")
+                    log(f'Virtual lease: {lease.seconds}s; preventive shutdown in {int(lease.seconds * .9)}s.')
+                    await relay(ws, network.fd, mac, lease, stop, resolver)
+            except OSError as exc:
+                raise RuntimeError(f'WSS connection failed (OS error {exc.errno}: {exc.strerror})') from None
         main = asyncio.create_task(session())
         stopping = asyncio.create_task(stop.wait())
         try:
@@ -190,9 +214,9 @@ def main():
     except Exception as exc:
         # External exception text can contain response bodies/headers. Never print those.
         if isinstance(exc, RuntimeError):
-            print('Error:', str(exc), file=sys.stderr)
+            log('Error: ' + str(exc), file=sys.stderr)
         else:
-            print(f'Error ({type(exc).__name__}); no payload or remote headers were logged.', file=sys.stderr)
+            log(f'Error ({type(exc).__name__}); no payload or remote headers were logged.', file=sys.stderr)
         return 1
 
 
