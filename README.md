@@ -54,18 +54,15 @@ Use Linux Docker Engine. Host networking routes client traffic only; Windows can
 
 The container requires `OBWEB_LAN_INTERFACE` (the Linux interface connected to the client LAN) and `OBWEB_USERNAME`. The example below lists every configurable `OBWEB_*` container variable. Remove the `#` before an optional `-e` line to use it; Compose users can place the same variables under `environment:`. `OBWEB_RUN_MODE` is internal and set automatically.
 
-From the project directory, create local persistent folders and run:
+Docker creates the named volume on first use and keeps it between runs. The network namespace directory is created inside the container.
 
 ```bash
-mkdir -p ./bridge-data ./netns
-
 docker_args=(
   --rm --network host
   --cap-add NET_ADMIN --cap-add SYS_ADMIN
   --device /dev/net/tun:/dev/net/tun
   --security-opt seccomp=unconfined
-  --mount "type=bind,src=$PWD/netns,dst=/run/netns,bind-propagation=rshared"
-  --mount "type=bind,src=$PWD/bridge-data,dst=/var/lib/obweb-bridge"
+  --mount type=volume,src=obweb-bridge-data,dst=/var/lib/obweb-bridge
   -e OBWEB_LAN_INTERFACE=wlp2s0
   -e OBWEB_USERNAME=your_username
 
@@ -97,7 +94,7 @@ docker_args=(
 docker run "${docker_args[@]}" ghcr.io/zenaror/obweb-bridge:latest
 ```
 
-Replace `wlp2s0` with your Linux interface name. Omit the REO code to create a new account; the code's username must match `OBWEB_USERNAME`. The container prints the game credentials. An existing username without a matching code produces an error. Keep `./bridge-data` between runs; add `--cleanup` after the image name to recover from a forced stop. Pull requests build the image; pushes to `main` and version tags publish it.
+Replace `wlp2s0` with your Linux interface name. Omit the REO code to create a new account; the code's username must match `OBWEB_USERNAME`. The container prints the game credentials. An existing username without a matching code produces an error. The `obweb-bridge-data` Docker volume keeps account and cleanup state between runs; add `--cleanup` after the image name to recover from a forced stop. Pull requests build the image; pushes to `main` and version tags publish it.
 
 The launcher prepares the Outbreak Web login, shows a network plan, and asks for `sudo` to enable temporary routing. Wait for **READY**. The login helper can create a username or import an existing account with its transfer code; it displays the game password for manual entry. Keep that screen private.
 
