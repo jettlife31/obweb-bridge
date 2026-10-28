@@ -48,7 +48,7 @@ O inicializador nativo pergunta qual interface Linux está conectada à LAN do c
 ./start-local.sh
 ```
 
-Execute o inicializador nativo como usuário comum; ele solicita `sudo` apenas para configurar temporariamente a rede. O host da ponte precisa ser Linux. Um PC com Windows pode ser cliente se usar o IP LAN da ponte Linux como gateway e DNS.
+Execute o inicializador nativo como usuário comum; ele solicita `sudo` apenas ao configurar ou recuperar o estado temporário da rede. O host da ponte precisa ser Linux. Um PC com Windows pode ser cliente se usar o IP LAN da ponte Linux como gateway e DNS.
 
 #### Execute a imagem publicada do container
 

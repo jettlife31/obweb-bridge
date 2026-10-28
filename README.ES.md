@@ -48,7 +48,7 @@ El iniciador nativo pregunta qué interfaz Linux está conectada a la LAN del cl
 ./start-local.sh
 ```
 
-Ejecuta el iniciador nativo como usuario normal; solo solicita `sudo` para la configuración temporal de red. El host del bridge requiere Linux. Un PC con Windows puede actuar como cliente si usa como gateway y DNS la IP LAN del bridge Linux.
+Ejecuta el iniciador nativo como usuario normal; solo solicita `sudo` al configurar o recuperar el estado temporal de la red. El host del bridge requiere Linux. Un PC con Windows puede actuar como cliente si usa como gateway y DNS la IP LAN del bridge Linux.
 
 #### Ejecuta la imagen publicada del contenedor
 

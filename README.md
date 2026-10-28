@@ -48,7 +48,7 @@ The native launcher asks which Linux interface connects to the client LAN. Commo
 ./start-local.sh
 ```
 
-The native launcher starts as a regular user and requests `sudo` only for temporary network setup. The bridge host requires Linux; a Windows PC can be a client by using the Linux bridge's LAN IP as its gateway and DNS.
+The native launcher starts as a regular user and requests `sudo` only when configuring or recovering temporary network state. The bridge host requires Linux; a Windows PC can be a client by using the Linux bridge's LAN IP as its gateway and DNS.
 
 #### Run the published container image
 

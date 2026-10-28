@@ -18,6 +18,9 @@ PEER = 'obw-peer'
 TAP = 'obw-tap'
 TABLE = 'obw_gateway'
 STATE = Path(os.environ.get('OBWEB_RUNTIME_DIR', '/run/outbreak-gateway'))
+TRANSIT_POOLS = tuple(map(ipaddress.ip_network, (
+    '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', '100.64.0.0/10'
+)))
 
 
 def command(args, text=None, check=True):
@@ -70,9 +73,12 @@ def inventory(lan, client_ip=None, lan_ip=None):
         raise RuntimeError('The existing gateway cannot be the client or Linux itself')
     routes = json.loads(command(['ip', '-j', '-4', 'route', 'show', 'table', 'all']).stdout)
     networks = [ipaddress.ip_network(r['dst'], strict=False) for r in routes if r.get('dst', 'default') != 'default']
-    # RFC3927 link-local space, randomly allocated for this invocation, never a game destination.
-    for _ in range(1024):
-        transit = ipaddress.ip_network((0xa9fe0000 + (secrets.randbelow(16000) + 128) * 4, 30))
+    # Pick a free /30 from private/shared space; link-local is avoided because
+    # some hosts install a covering 169.254.0.0/16 route.
+    for _ in range(4096):
+        pool = secrets.choice(TRANSIT_POOLS)
+        offset = secrets.randbelow(pool.num_addresses // 4) * 4
+        transit = ipaddress.ip_network((int(pool.network_address) + offset, 30))
         if not any(transit.overlaps(n) for n in networks): break
     else: raise RuntimeError('Could not find an unused transit network')
     rules = json.loads(command(['ip', '-j', '-4', 'rule', 'show']).stdout)
