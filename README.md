@@ -52,16 +52,7 @@ The native launcher starts as a regular user and requests `sudo` only for tempor
 
 Use Linux Docker Engine. Host networking routes client traffic only; Windows can be a client but cannot host this backend.
 
-Set `OBWEB_LAN_INTERFACE` and `OBWEB_USERNAME` in a private environment file at `~/.config/obweb-bridge/bridge.env` with permissions `600`. `OBWEB_REO_CODE` is optional: include the code from **Settings > Online > Show my code** to import an existing account, or omit it to create a new account.
-
-```dotenv
-OBWEB_LAN_INTERFACE=wlp2s0
-OBWEB_LAN_IP=192.168.1.10
-OBWEB_USERNAME=your_username
-# Optional: OBWEB_REO_CODE=REO1-your_username-<32-hex-characters>
-```
-
-Replace the sample values; the code username must match `OBWEB_USERNAME`. The container prints the game credentials. If an existing username has no matching code, startup stops with an explanatory error.
+Pass `OBWEB_LAN_INTERFACE` and `OBWEB_USERNAME` as container environment variables. With Compose, set them under `environment:`. Add optional `OBWEB_REO_CODE` from **Settings > Online > Show my code** to import an existing account; omit it to create a new one. The code username must match `OBWEB_USERNAME`. The container prints the game credentials; an existing username without a matching code produces an error.
 
 Create the persistent data directory and namespace mount point with `sudo mkdir -p /var/lib/obweb-bridge /run/netns`, then run:
 
@@ -72,9 +63,12 @@ docker run --rm --network host \
   --security-opt seccomp=unconfined \
   --mount type=bind,src=/run/netns,dst=/run/netns,bind-propagation=rshared \
   --mount type=bind,src=/var/lib/obweb-bridge,dst=/var/lib/obweb-bridge \
-  --env-file "$HOME/.config/obweb-bridge/bridge.env" \
+  -e OBWEB_LAN_INTERFACE=wlp2s0 \
+  -e OBWEB_USERNAME=your_username \
   ghcr.io/zenaror/obweb-bridge:latest
 ```
+
+For an existing account, add `-e OBWEB_REO_CODE='REO1-username-<32-hex-characters>'` and replace the placeholder with the complete code. Omit it to create a new account. Replace `wlp2s0` with your Linux interface name. Add `-e OBWEB_LAN_IP=192.168.1.10` only if the interface has multiple local IPv4 addresses.
 
 The network capabilities are required for forwarding. Keep `/var/lib/obweb-bridge` between runs; add `--cleanup` after the image name to recover from a forced stop. `OBWEB_CLIENT_IP`, `OBWEB_WSS_URL`, and `OBWEB_WSS_ORIGIN` are optional container variables. Pull requests build the image; pushes to `main` and version tags publish it.
 
