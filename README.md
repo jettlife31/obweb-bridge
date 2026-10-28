@@ -40,22 +40,13 @@ The bridge runs on a Linux computer. Install Python 3.10+, `iproute2`, `nftables
 sudo apt install python3-venv iproute2 nftables procps
 ```
 
-Set `OBWEB_LAN_INTERFACE` to the Linux interface connected to the client LAN. Interface names vary by machine; common Linux examples are `enp3s0` or `eno1` for Ethernet and `wlp2s0` or `wlan0` for Wi-Fi. Find the actual name with `ip -br -4 address`. Set `OBWEB_LAN_IP` if that interface has multiple local IPv4 addresses. `OBWEB_CLIENT_IP` optionally restricts forwarding to one client; `OBWEB_WSS_URL` and `OBWEB_WSS_ORIGIN` override the service defaults.
+The native launcher asks which Linux interface connects to the client LAN. Common names are `enp3s0` or `eno1` for Ethernet and `wlp2s0` or `wlan0` for Wi-Fi. It displays each interface's IPv4 address so you can choose the right one.
 
 ```sh
-OBWEB_LAN_INTERFACE=wlp2s0 OBWEB_LAN_IP=192.168.1.10 ./start-local.sh
+./start-local.sh
 ```
 
-For example, replace `wlp2s0` with `enp3s0` on a wired Linux host. The native launcher starts as a regular user and requests `sudo` only for temporary network setup. If `OBWEB_LAN_INTERFACE` is unset, it presents a menu.
-
-Windows adapter aliases commonly appear as `Wi-Fi` or `Ethernet`; PowerShell lists them with `Get-NetAdapter`. The equivalent variable syntax would be:
-
-```powershell
-$env:OBWEB_LAN_INTERFACE = "Wi-Fi"
-$env:OBWEB_LAN_IP = "192.168.1.10"
-```
-
-This is only an example of Windows adapter naming and PowerShell syntax; it is not a working bridge-host setting yet because the current network backend and container require Linux. A Windows PC can be a client; configure its network gateway and DNS to the Linux bridge's LAN IP instead.
+The native launcher starts as a regular user and requests `sudo` only for temporary network setup. The bridge host requires Linux; a Windows PC can be a client by using the Linux bridge's LAN IP as its gateway and DNS.
 
 #### Run the published container image
 
@@ -85,7 +76,7 @@ docker run --rm --network host \
   ghcr.io/zenaror/obweb-bridge:latest
 ```
 
-The network capabilities are required for forwarding. Keep `/var/lib/obweb-bridge` between runs; add `--cleanup` after the image name to recover from a forced stop. `OBWEB_CLIENT_IP`, `OBWEB_WSS_URL`, and `OBWEB_WSS_ORIGIN` are optional. Pull requests build the image; pushes to `main` and version tags publish it.
+The network capabilities are required for forwarding. Keep `/var/lib/obweb-bridge` between runs; add `--cleanup` after the image name to recover from a forced stop. `OBWEB_CLIENT_IP`, `OBWEB_WSS_URL`, and `OBWEB_WSS_ORIGIN` are optional container variables. Pull requests build the image; pushes to `main` and version tags publish it.
 
 The launcher prepares the Outbreak Web login, shows a network plan, and asks for `sudo` to enable temporary routing. Wait for **READY**. The login helper can create a username or import an existing account with its transfer code; it displays the game password for manual entry. Keep that screen private.
 

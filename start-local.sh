@@ -9,11 +9,7 @@ if [ ! -x "$BASE_DIR/.venv/bin/python" ]; then python3 -m venv "$BASE_DIR/.venv"
 "$BASE_DIR/.venv/bin/python" -m pip install --quiet -r "$BASE_DIR/requirements.txt"
 LAN_INTERFACE=$("$BASE_DIR/.venv/bin/python" "$BASE_DIR/select_interface.py")
 set -- --lan-interface "$LAN_INTERFACE"
-if [ -n "${OBWEB_LAN_IP:-}" ]; then set -- "$@" --lan-ip "$OBWEB_LAN_IP"; fi
-if [ -n "${OBWEB_CLIENT_IP:-}" ]; then set -- "$@" --client-ip "$OBWEB_CLIENT_IP"; fi
-if [ -n "${OBWEB_WSS_URL:-}" ]; then set -- "$@" --url "$OBWEB_WSS_URL"; fi
-if [ -n "${OBWEB_WSS_ORIGIN:-}" ]; then set -- "$@" --origin "$OBWEB_WSS_ORIGIN"; fi
 "$BASE_DIR/.venv/bin/python" "$BASE_DIR/gateway.py" "$@"
-"$BASE_DIR/.venv/bin/python" "$BASE_DIR/login_web.py"
+env -u OBWEB_USERNAME -u OBWEB_REO_CODE "$BASE_DIR/.venv/bin/python" "$BASE_DIR/login_web.py"
 printf '\nAll IPv4 traffic routed from LAN clients will use WSS. Wait for READY. Press Ctrl+C to stop.\n'
 exec sudo "$BASE_DIR/.venv/bin/python" "$BASE_DIR/gateway.py" "$@" --run

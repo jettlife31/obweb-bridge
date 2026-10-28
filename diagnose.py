@@ -93,14 +93,14 @@ def tap_counts():
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--lan-interface',default=os.environ.get('OBWEB_LAN_INTERFACE'),help='Linux LAN interface used by the bridge')
-    parser.add_argument('--lan-ip',default=os.environ.get('OBWEB_LAN_IP'),help='Local IPv4 used by the bridge')
+    parser.add_argument('--lan-interface',help='Linux LAN interface used by the bridge')
+    parser.add_argument('--lan-ip',help='Local IPv4 used by the bridge')
     parser.add_argument('--seconds',type=int,default=45)
     parser.add_argument('--dns-name',help='DNS test name and capture comparison; other names are not shown')
     parser.add_argument('--test-dns',type=ipaddress.IPv4Address,help='DNS supplied by DHCP, for a namespace/WSS test only')
-    parser.add_argument('--url',default=os.environ.get('OBWEB_WSS_URL','wss://outbreakweb.com/eth'),help='WSS URL used to select the default DNS test name')
+    parser.add_argument('--url',default='wss://outbreakweb.com/eth',help='WSS URL used to select the default DNS test name')
     args=parser.parse_args()
-    if not args.lan_interface: parser.error('Set OBWEB_LAN_INTERFACE or pass --lan-interface')
+    if not args.lan_interface: parser.error('Pass --lan-interface')
     if os.geteuid():parser.error('Run with sudo; keep the gateway running in another terminal')
     if not 5<=args.seconds<=120:parser.error('Use 5 to 120 seconds')
     counts=collections.Counter()

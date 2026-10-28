@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Interactively select the Linux LAN interface connected to the client network."""
 import json
-import os
 import subprocess
 
 result = subprocess.run(
@@ -15,12 +14,6 @@ for item in json.loads(result.stdout):
         interfaces.append((item['ifname'], ', '.join(a['local'] for a in addresses)))
 if not interfaces:
     raise SystemExit('No active LAN interfaces with global IPv4 addresses were found.')
-configured = os.environ.get('OBWEB_LAN_INTERFACE')
-if configured:
-    if configured not in {name for name, _ in interfaces}:
-        raise SystemExit('OBWEB_LAN_INTERFACE is not an active interface with a global IPv4 address.')
-    print(configured)
-    raise SystemExit(0)
 with open('/dev/tty', 'w') as tty_out, open('/dev/tty', 'r') as tty_in:
     tty_out.write('Select the Linux interface connected to the client LAN:\n')
     for i, (name, addresses) in enumerate(interfaces, 1):
