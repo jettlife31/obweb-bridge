@@ -5,11 +5,14 @@ if [ "$(id -u)" -eq 0 ]; then
   echo 'Run as a regular user; sudo is used only for networking.' >&2
   exit 1
 fi
+unset OBWEB_RUN_MODE OBWEB_USERNAME OBWEB_REO_CODE OBWEB_LAN_INTERFACE OBWEB_LAN_IP
+unset OBWEB_CLIENT_IP OBWEB_WSS_URL OBWEB_WSS_ORIGIN OBWEB_RUNTIME_DIR
 if [ ! -x "$BASE_DIR/.venv/bin/python" ]; then python3 -m venv "$BASE_DIR/.venv"; fi
 "$BASE_DIR/.venv/bin/python" -m pip install --quiet -r "$BASE_DIR/requirements.txt"
 LAN_INTERFACE=$("$BASE_DIR/.venv/bin/python" "$BASE_DIR/select_interface.py")
 set -- --lan-interface "$LAN_INTERFACE"
 "$BASE_DIR/.venv/bin/python" "$BASE_DIR/gateway.py" "$@"
-env -u OBWEB_USERNAME -u OBWEB_REO_CODE "$BASE_DIR/.venv/bin/python" "$BASE_DIR/login_web.py"
+env -u OBWEB_RUN_MODE -u OBWEB_USERNAME -u OBWEB_REO_CODE \
+  "$BASE_DIR/.venv/bin/python" "$BASE_DIR/login_web.py"
 printf '\nAll IPv4 traffic routed from LAN clients will use WSS. Wait for READY. Press Ctrl+C to stop.\n'
 exec sudo "$BASE_DIR/.venv/bin/python" "$BASE_DIR/gateway.py" "$@" --run

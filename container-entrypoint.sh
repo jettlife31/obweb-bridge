@@ -32,6 +32,7 @@ LAN_INTERFACE=$OBWEB_LAN_INTERFACE
 
 python /app/gateway.py --lan-interface "$LAN_INTERFACE"
 runuser -u obweb -- env HOME=/home/obweb XDG_STATE_HOME="$STATE_HOME" \
+  OBWEB_RUN_MODE=container \
   OBWEB_USERNAME="$OBWEB_USERNAME" OBWEB_REO_CODE="${OBWEB_REO_CODE:-}" \
   python /app/login_web.py
 echo 'Forwarded client IPv4 traffic will use WSS. Press Ctrl+C to stop.'

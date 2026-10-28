@@ -121,9 +121,9 @@ def login_from_environment():
 def main():
     if os.geteuid() == 0:
         raise ValueError('Run the launcher as a regular user, without sudo.')
-    if os.environ.get('OBWEB_REO_CODE') and not os.environ.get('OBWEB_USERNAME'):
-        raise ValueError('OBWEB_USERNAME is required when OBWEB_REO_CODE is set.')
-    if 'OBWEB_USERNAME' in os.environ:
+    if os.environ.get('OBWEB_RUN_MODE') == 'container':
+        if os.environ.get('OBWEB_REO_CODE') and not os.environ.get('OBWEB_USERNAME'):
+            raise ValueError('OBWEB_USERNAME is required when OBWEB_REO_CODE is set.')
         login_from_environment()
         return
     # All interactive credentials stay in the local terminal, not shell stdout/logs.
