@@ -59,40 +59,25 @@ $env:OBWEB_LAN_IP = "192.168.1.10"
 
 This is only an example of Windows adapter naming and PowerShell syntax; it is not a working bridge-host setting yet because the current network backend and container require Linux. A Windows PC can be a client; configure its network gateway and DNS to the Linux bridge's LAN IP instead.
 
-```sh
-./start-local.sh
-```
-
 #### Run the published container image
 
-The container uses host networking so it can see the Linux host's actual LAN interface and IP. It applies routing only to forwarded client traffic; the host's own connections keep their normal route. Host networking and the packet/TAP operations require a Linux Docker Engine. Docker Desktop's host mode is not suitable for this bridge's packet-forwarding path. The container does not prompt, so `OBWEB_LAN_INTERFACE` and `OBWEB_USERNAME` are required.
+Use Linux Docker Engine. Host networking routes client traffic only; Windows can be a client but cannot host this backend.
 
-Create persistent state directories and the namespace mount point once:
+Set `OBWEB_LAN_INTERFACE` and `OBWEB_USERNAME` in a private environment file at `~/.config/obweb-bridge/bridge.env` with permissions `600`. `OBWEB_REO_CODE` is optional: include the code from **Settings > Online > Show my code** to import an existing account, or omit it to create a new account.
 
-```sh
-sudo mkdir -p /var/lib/obweb-bridge /run/netns
-```
-
-Create a private environment file outside the repository. Use your Linux interface and LAN IP. `OBWEB_USERNAME` is required. Include `OBWEB_REO_CODE` only to import an existing Outbreak Web account; omit it to create a new account. The generated identity is saved and reused on later runs.
-
-```sh
-mkdir -p "$HOME/.config/obweb-bridge"
-chmod 700 "$HOME/.config/obweb-bridge"
-cat > "$HOME/.config/obweb-bridge/bridge.env" <<'EOF'
+```dotenv
 OBWEB_LAN_INTERFACE=wlp2s0
 OBWEB_LAN_IP=192.168.1.10
 OBWEB_USERNAME=your_username
-# OBWEB_REO_CODE=REO1-your_username-0123456789abcdef0123456789abcdef
-EOF
-chmod 600 "$HOME/.config/obweb-bridge/bridge.env"
+# Optional: OBWEB_REO_CODE=REO1-your_username-<32-hex-characters>
 ```
 
-Replace the sample interface, IP, and username. For a new account, leave the REO line commented out. For an existing account, uncomment it and paste the complete code from **Settings > Online > Show my code**; its embedded username must match `OBWEB_USERNAME`.
+Replace the sample values; the code username must match `OBWEB_USERNAME`. The container prints the game credentials. If an existing username has no matching code, startup stops with an explanatory error.
 
-Then run the image:
+Create the persistent data directory and namespace mount point with `sudo mkdir -p /var/lib/obweb-bridge /run/netns`, then run:
 
 ```sh
-docker run --rm -it --network host \
+docker run --rm --network host \
   --cap-add NET_ADMIN --cap-add SYS_ADMIN \
   --device /dev/net/tun:/dev/net/tun \
   --security-opt seccomp=unconfined \
@@ -102,22 +87,9 @@ docker run --rm -it --network host \
   ghcr.io/zenaror/obweb-bridge:latest
 ```
 
-The image stores account credentials and interrupted-run cleanup state under `/var/lib/obweb-bridge`. Keep this directory between runs. `OBWEB_CLIENT_IP`, `OBWEB_WSS_URL`, and `OBWEB_WSS_ORIGIN` can also be added to the environment file. On success, the container prints the game username and password to its output; keep `docker logs` private. If the username already exists but no matching REO code was supplied, startup stops and prints that a code or a different username is required. On a pull request, GitHub Actions builds the image without publishing it. Pushes to `main` publish `latest`, `main`, and a commit tag; version tags publish versioned images. The GHCR image is public and can be pulled without signing in.
+The network capabilities are required for forwarding. Keep `/var/lib/obweb-bridge` between runs; add `--cleanup` after the image name to recover from a forced stop. `OBWEB_CLIENT_IP`, `OBWEB_WSS_URL`, and `OBWEB_WSS_ORIGIN` are optional. Pull requests build the image; pushes to `main` and version tags publish it.
 
-The container needs `NET_ADMIN` to add the client-specific route/firewall rules and `SYS_ADMIN` for the temporary network namespace. The default seccomp filter blocks the namespace operations used by this implementation, so the example disables that filter. Run only an image you trust. If the container is forcibly terminated and does not clean up, recover its saved networking state with:
-
-```sh
-docker run --rm --network host \
-  --cap-add NET_ADMIN --cap-add SYS_ADMIN \
-  --security-opt seccomp=unconfined \
-  --mount type=bind,src=/run/netns,dst=/run/netns,bind-propagation=rshared \
-  --mount type=bind,src=/var/lib/obweb-bridge,dst=/var/lib/obweb-bridge \
-  ghcr.io/zenaror/obweb-bridge:latest --cleanup
-```
-
-Use this only after confirming the bridge container is stopped. On abrupt host power loss, inspect the host's network state before restarting.
-
-The launcher prepares the Outbreak Web login, shows a network plan, and asks for `sudo` to enable temporary routing. The container does the same with its required capabilities. Wait for **READY**. The login helper can create a username or import an existing account with its transfer code; it displays the game password in the terminal for manual entry. Keep that screen private.
+The launcher prepares the Outbreak Web login, shows a network plan, and asks for `sudo` to enable temporary routing. Wait for **READY**. The login helper can create a username or import an existing account with its transfer code; it displays the game password for manual entry. Keep that screen private.
 
 Configure the client to use the Linux computer's LAN IP as its **default gateway and DNS server**. Keep the client IP address and subnet mask valid for that LAN. This means setting the network gateway on Android, Windows, or Linux, or setting the PS2 IP, subnet mask, and gateway in the PS2 game's network configuration. The client and Linux computer must share the LAN, and Wi-Fi client isolation must be off.
 
