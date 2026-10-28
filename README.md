@@ -43,9 +43,7 @@ sudo apt install python3-venv iproute2 nftables procps
 Set `OBWEB_LAN_INTERFACE` to the Linux interface connected to the client LAN. Interface names vary by machine; common Linux examples are `enp3s0` or `eno1` for Ethernet and `wlp2s0` or `wlan0` for Wi-Fi. Find the actual name with `ip -br -4 address`. Set `OBWEB_LAN_IP` if that interface has multiple local IPv4 addresses. `OBWEB_CLIENT_IP` optionally restricts forwarding to one client; `OBWEB_WSS_URL` and `OBWEB_WSS_ORIGIN` override the service defaults.
 
 ```sh
-export OBWEB_LAN_INTERFACE=wlp2s0
-export OBWEB_LAN_IP=192.168.1.10
-./start-local.sh
+OBWEB_LAN_INTERFACE=wlp2s0 OBWEB_LAN_IP=192.168.1.10 ./start-local.sh
 ```
 
 For example, replace `wlp2s0` with `enp3s0` on a wired Linux host. The native launcher starts as a regular user and requests `sudo` only for temporary network setup. If `OBWEB_LAN_INTERFACE` is unset, it presents a menu.
