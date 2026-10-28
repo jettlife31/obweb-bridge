@@ -3,7 +3,7 @@
 Copy `config.example.json` to `config.local.json` and set the LAN interface for your system. Local settings are stored in `config.local.json`, which is excluded from Git. The packet transport does not interpret Outbreak or its services. The launcher runs the separate `login_web.py` account setup before configuring the network.
 
 1. Stop the previous gateway with **Ctrl+C** so it can remove its temporary configuration.
-2. Run `./iniciar-local.sh` as a regular user.
+2. Run `./start-local.sh` as a regular user.
 3. Enter your Outbreak Web username. Choose **N** for a new username, or **I** to import the transfer code from the page if the username is already yours. The code is entered invisibly. Do not use another service's password.
 4. The helper registers/checks the username and credential over HTTPS, separately from WSS packet transport. It displays the username and 12-character game password in the terminal. Enter them manually in the game. Keep the screen private.
 5. Press Enter and wait for **READY**. The plan should say that client IPv4 traffic uses WSS.

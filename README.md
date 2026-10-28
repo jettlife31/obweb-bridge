@@ -23,7 +23,7 @@ Copy `config.example.json` to `config.local.json`, then set `lan_interface` to t
 Run the launcher as a regular user:
 
 ```sh
-./iniciar-local.sh
+./start-local.sh
 ```
 
 It creates `.venv`, installs the pinned Python dependency, displays a read-only network plan, prepares the Outbreak Web login, then requests `sudo` to configure temporary networking. Wait for **READY**. It does not change the Linux computer's default gateway or install a persistent service. Press Ctrl+C to clean up.
@@ -71,7 +71,7 @@ The program does not log packet payloads, arbitrary DNS names, credentials or ra
 With the gateway running, diagnostics can be started in another terminal:
 
 ```sh
-sudo .venv/bin/python diagnostico.py --config config.local.json --seconds 45
+sudo .venv/bin/python diagnose.py --config config.local.json --seconds 45
 ```
 
 Try connecting while the diagnostic runs. It reports counts by interface, direction, protocol/port and DNS response code without showing DNS names or remote addresses. An optional `--test-dns ADDRESS` checks a DNS server supplied by remote DHCP through the tunnel. `--dns-name NAME` can compare captured questions with one name; other names remain hidden. The diagnostic does not restart the gateway or change network settings.
