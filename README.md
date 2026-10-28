@@ -80,15 +80,23 @@ Add these `-e` flags before the image name only when needed:
 
 The launcher prepares the Outbreak Web login, shows a network plan, and asks for `sudo` to enable temporary routing. Wait for **READY**. The login helper can create a username or import an existing account with its transfer code; it displays the game password for manual entry. Keep that screen private.
 
-Configure the client to use the Linux computer's LAN IP as its **default gateway and DNS server**. Keep the client IP address and subnet mask valid for that LAN. This means setting the network gateway on Android, Windows, or Linux, or setting the PS2 IP, subnet mask, and gateway in the PS2 game's network configuration. The client and Linux computer must share the LAN, and Wi-Fi client isolation must be off.
+The client and Linux computer must share the same LAN, and Wi-Fi client isolation must be off. For a PC or Android client, set the device's default gateway and DNS to the Linux computer's LAN IP printed by the bridge. For a real PS2, use the in-game network settings below.
 
 ### 2. Configure the game and network
 
 Even when using an emulator, create a **new in-game network configuration** instead of reusing an old one, and set its network fields to **Automatic**. In the emulator's own Ethernet settings, enable Ethernet, choose **Online / Sockets**, and set primary and secondary DNS manually to the Linux computer's LAN IP. In ARMSX2, these are the emulator's Ethernet settings.
 
-For a physical PS2, create a network configuration with a valid PS2 IP and subnet mask, set its gateway to the Linux computer's LAN IP, and set primary DNS to that same Linux IP. Set secondary DNS to the same address if the game requires one.
+For a physical PS2, create a new network configuration in the game's Network Play setup and enter:
 
-Use the Linux LAN IP printed by the bridge. Do not enter the remote DHCP address shown by the bridge into the client's LAN settings.
+- **IP address:** an unused address on the same LAN as the Linux computer. Do not use the Linux computer's IP, another device's IP, or an address inside the router's DHCP pool.
+- **Subnet mask:** the mask used by your LAN (commonly `255.255.255.0` for a `/24` network).
+- **Gateway:** the Linux computer's LAN IP printed by the bridge.
+- **Primary DNS (DNS1):** the same Linux computer LAN IP.
+- **Secondary DNS (DNS2):** set it to the Linux computer's LAN IP if the setup requires a value.
+
+Save the profile and select it for Network Play. This static console setup has been confirmed working with a real PS2.
+
+Do not enter the remote DHCP address shown by the bridge into the console's network settings.
 
 ### 3. Play
 
