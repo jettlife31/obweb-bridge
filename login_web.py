@@ -74,9 +74,58 @@ def save_state(path, value):
             os.unlink(tmp)
 
 
+def login_from_environment():
+    """Non-interactive account setup for containers and scripted launches."""
+    name = os.environ.get('OBWEB_USERNAME', '')
+    if not NAME.fullmatch(name):
+        raise ValueError('OBWEB_USERNAME is required and must contain 1 to 15 letters or numbers.')
+
+    transfer = os.environ.get('OBWEB_REO_CODE', '').strip()
+    if transfer:
+        match = TRANSFER.fullmatch(transfer)
+        if not match:
+            raise ValueError('OBWEB_REO_CODE must be the complete REO1 transfer code from the website.')
+        if match[1] != name:
+            raise ValueError('OBWEB_REO_CODE belongs to a different username than OBWEB_USERNAME.')
+
+    path = state_path()
+    state = load_state(path)
+    if transfer:
+        token = match[2]
+    else:
+        # Keep a generated identity stable across container restarts.
+        token = state['identities'].get(name) or secrets.token_hex(16)
+
+    state['identities'][name] = token
+    save_state(path, state)
+    secret = credential(name, token)
+    print('Outbreak Web login — account setup, separate from the WSS tunnel.', flush=True)
+    print('Registering/checking the username with Outbreak Web…', flush=True)
+    status = register(name, secret)
+    if status == 409:
+        if transfer:
+            raise ValueError(f'Username "{name}" already exists, but the supplied REO code was not accepted. Check the code and username.')
+        raise ValueError(f'Username "{name}" already exists. Set OBWEB_REO_CODE to the matching REO transfer code, or choose another username.')
+    if not 200 <= status < 300:
+        raise ValueError(f'The service rejected registration (HTTP {status}); the gateway was not started.')
+
+    state['last_name'] = name
+    save_state(path, state)
+    print('Account accepted. Enter these details on the game login screen:', flush=True)
+    print(f'  Username: {name}', flush=True)
+    print(f'  Password: {secret}', flush=True)
+    print('This is the game password. Keep the container logs private.', flush=True)
+    print('The game does not fill this in automatically. Use the patched game image.', flush=True)
+
+
 def main():
     if os.geteuid() == 0:
         raise ValueError('Run the launcher as a regular user, without sudo.')
+    if os.environ.get('OBWEB_REO_CODE') and not os.environ.get('OBWEB_USERNAME'):
+        raise ValueError('OBWEB_USERNAME is required when OBWEB_REO_CODE is set.')
+    if 'OBWEB_USERNAME' in os.environ:
+        login_from_environment()
+        return
     # All interactive credentials stay in the local terminal, not shell stdout/logs.
     with open('/dev/tty', 'w') as tty, open('/dev/tty', 'r') as tty_input:
         def say(text):

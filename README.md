@@ -40,15 +40,24 @@ The bridge runs on a Linux computer. Install Python 3.10+, `iproute2`, `nftables
 sudo apt install python3-venv iproute2 nftables procps
 ```
 
-Set `OBWEB_LAN_INTERFACE` to skip the interface menu, and optionally set `OBWEB_LAN_IP` when that interface has more than one local IPv4 address. `OBWEB_CLIENT_IP` optionally restricts the forwarded client to one address. The WSS endpoint and origin can be overridden with `OBWEB_WSS_URL` and `OBWEB_WSS_ORIGIN`. Leave them unset for the service defaults. For example:
+Set `OBWEB_LAN_INTERFACE` to the Linux interface connected to the client LAN. Interface names vary by machine; common Linux examples are `enp3s0` or `eno1` for Ethernet and `wlp2s0` or `wlan0` for Wi-Fi. Find the actual name with `ip -br -4 address`. Set `OBWEB_LAN_IP` if that interface has multiple local IPv4 addresses. `OBWEB_CLIENT_IP` optionally restricts forwarding to one client; `OBWEB_WSS_URL` and `OBWEB_WSS_ORIGIN` override the service defaults.
 
 ```sh
-export OBWEB_LAN_INTERFACE=YOUR_LAN_INTERFACE
+export OBWEB_LAN_INTERFACE=wlp2s0
 export OBWEB_LAN_IP=192.168.1.10
 ./start-local.sh
 ```
 
-Without `OBWEB_LAN_INTERFACE`, choose the interface from the menu. The native launcher starts as a regular user and requests `sudo` only for temporary network setup.
+For example, replace `wlp2s0` with `enp3s0` on a wired Linux host. The native launcher starts as a regular user and requests `sudo` only for temporary network setup. If `OBWEB_LAN_INTERFACE` is unset, it presents a menu.
+
+Windows adapter aliases commonly appear as `Wi-Fi` or `Ethernet`; PowerShell lists them with `Get-NetAdapter`. The equivalent variable syntax would be:
+
+```powershell
+$env:OBWEB_LAN_INTERFACE = "Wi-Fi"
+$env:OBWEB_LAN_IP = "192.168.1.10"
+```
+
+This is only an example of Windows adapter naming and PowerShell syntax; it is not a working bridge-host setting yet because the current network backend and container require Linux. A Windows PC can be a client; configure its network gateway and DNS to the Linux bridge's LAN IP instead.
 
 ```sh
 ./start-local.sh
@@ -56,7 +65,7 @@ Without `OBWEB_LAN_INTERFACE`, choose the interface from the menu. The native la
 
 #### Run the published container image
 
-The container uses host networking so it can see the Linux host's actual LAN interface and IP. It applies routing only to forwarded client traffic; the host's own connections keep their normal route. Host networking and the packet/TAP operations require a Linux Docker Engine. Docker Desktop's host mode is not suitable for this bridge's packet-forwarding path.
+The container uses host networking so it can see the Linux host's actual LAN interface and IP. It applies routing only to forwarded client traffic; the host's own connections keep their normal route. Host networking and the packet/TAP operations require a Linux Docker Engine. Docker Desktop's host mode is not suitable for this bridge's packet-forwarding path. The container does not prompt, so `OBWEB_LAN_INTERFACE` and `OBWEB_USERNAME` are required.
 
 Create persistent state directories and the namespace mount point once:
 
@@ -64,7 +73,23 @@ Create persistent state directories and the namespace mount point once:
 sudo mkdir -p /var/lib/obweb-bridge /run/netns
 ```
 
-Then run the image (replace the interface and LAN IP with values from your Linux host):
+Create a private environment file outside the repository. Use your Linux interface and LAN IP. `OBWEB_USERNAME` is required. Include `OBWEB_REO_CODE` only to import an existing Outbreak Web account; omit it to create a new account. The generated identity is saved and reused on later runs.
+
+```sh
+mkdir -p "$HOME/.config/obweb-bridge"
+chmod 700 "$HOME/.config/obweb-bridge"
+cat > "$HOME/.config/obweb-bridge/bridge.env" <<'EOF'
+OBWEB_LAN_INTERFACE=wlp2s0
+OBWEB_LAN_IP=192.168.1.10
+OBWEB_USERNAME=your_username
+# OBWEB_REO_CODE=REO1-your_username-0123456789abcdef0123456789abcdef
+EOF
+chmod 600 "$HOME/.config/obweb-bridge/bridge.env"
+```
+
+Replace the sample interface, IP, and username. For a new account, leave the REO line commented out. For an existing account, uncomment it and paste the complete code from **Settings > Online > Show my code**; its embedded username must match `OBWEB_USERNAME`.
+
+Then run the image:
 
 ```sh
 docker run --rm -it --network host \
@@ -73,12 +98,11 @@ docker run --rm -it --network host \
   --security-opt seccomp=unconfined \
   --mount type=bind,src=/run/netns,dst=/run/netns,bind-propagation=rshared \
   --mount type=bind,src=/var/lib/obweb-bridge,dst=/var/lib/obweb-bridge \
-  -e OBWEB_LAN_INTERFACE=YOUR_LAN_INTERFACE \
-  -e OBWEB_LAN_IP=192.168.1.10 \
+  --env-file "$HOME/.config/obweb-bridge/bridge.env" \
   ghcr.io/zenaror/obweb-bridge:latest
 ```
 
-The image stores account credentials and interrupted-run cleanup state under `/var/lib/obweb-bridge`. Keep this directory between runs. `OBWEB_CLIENT_IP`, `OBWEB_WSS_URL`, and `OBWEB_WSS_ORIGIN` can also be passed with `-e`. On a pull request, GitHub Actions builds the image without publishing it. Pushes to `main` publish `latest`, `main`, and a commit tag; version tags publish versioned images. The GHCR image is public and can be pulled without signing in.
+The image stores account credentials and interrupted-run cleanup state under `/var/lib/obweb-bridge`. Keep this directory between runs. `OBWEB_CLIENT_IP`, `OBWEB_WSS_URL`, and `OBWEB_WSS_ORIGIN` can also be added to the environment file. On success, the container prints the game username and password to its output; keep `docker logs` private. If the username already exists but no matching REO code was supplied, startup stops and prints that a code or a different username is required. On a pull request, GitHub Actions builds the image without publishing it. Pushes to `main` publish `latest`, `main`, and a commit tag; version tags publish versioned images. The GHCR image is public and can be pulled without signing in.
 
 The container needs `NET_ADMIN` to add the client-specific route/firewall rules and `SYS_ADMIN` for the temporary network namespace. The default seccomp filter blocks the namespace operations used by this implementation, so the example disables that filter. Run only an image you trust. If the container is forcibly terminated and does not clean up, recover its saved networking state with:
 
