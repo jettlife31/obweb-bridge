@@ -17,7 +17,7 @@ VETH = 'obw-host'
 PEER = 'obw-peer'
 TAP = 'obw-tap'
 TABLE = 'obw_gateway'
-STATE = Path('/run/outbreak-gateway')
+STATE = Path(os.environ.get('OBWEB_RUNTIME_DIR', '/run/outbreak-gateway'))
 
 
 def command(args, text=None, check=True):
@@ -37,7 +37,7 @@ def list_namespaces():
         not isinstance(entry, dict) or not isinstance(entry.get('name'), str)
         for entry in namespaces
     ):
-        raise RuntimeError('Formato inesperado na lista local de namespaces')
+        raise RuntimeError('Unexpected format in the local namespace list')
     return namespaces
 
 
@@ -45,28 +45,29 @@ def nscommand(args, **kwargs):
     return command(['ip', 'netns', 'exec', NS, *args], **kwargs)
 
 
-def inventory(lan, android=None):
+def inventory(lan, client_ip=None, lan_ip=None):
     for executable in ['ip', 'nft', 'sysctl']:
         if not shutil.which(executable):
             raise RuntimeError(f'Missing dependency: {executable}')
     interfaces = json.loads(command(['ip', '-j', '-4', 'address', 'show', 'dev', lan]).stdout)
     addresses = interfaces[0]['addr_info']
     candidates = [a for a in addresses if a['scope'] == 'global' and
-                  (android is None or ipaddress.ip_address(android) in ipaddress.ip_network(f"{a['local']}/{a['prefixlen']}", strict=False))]
+                  (lan_ip is None or a['local'] == lan_ip) and
+                  (client_ip is None or ipaddress.ip_address(client_ip) in ipaddress.ip_network(f"{a['local']}/{a['prefixlen']}", strict=False))]
     if len(candidates) != 1:
-        raise RuntimeError('Select a LAN interface with exactly one global IPv4 subnet')
+        raise RuntimeError('Select a LAN interface and local IPv4 address with exactly one matching subnet')
     address = candidates[0]['local']
     subnet = ipaddress.ip_network(f"{address}/{candidates[0]['prefixlen']}", strict=False)
-    if android in [address, str(subnet.network_address), str(subnet.broadcast_address)]:
-        raise RuntimeError('Invalid Android IP or same as the Linux IP')
-    if android is not None and (not ipaddress.ip_address(android).is_private or ipaddress.ip_address(android).is_loopback):
-        raise RuntimeError('Use the Android private IP on the local network')
+    if client_ip in [address, str(subnet.network_address), str(subnet.broadcast_address)]:
+        raise RuntimeError('Invalid client IP or same as the Linux IP')
+    if client_ip is not None and (not ipaddress.ip_address(client_ip).is_private or ipaddress.ip_address(client_ip).is_loopback):
+        raise RuntimeError('Use a private client IP on the local network')
     defaults = json.loads(command(['ip', '-j', '-4', 'route', 'show', 'default']).stdout)
     if len(defaults) != 1 or 'gateway' not in defaults[0]:
         raise RuntimeError('Expected one IPv4 default route with a router; VPN or multiple routes require review')
     default = defaults[0]
-    if default['gateway'] in [android, address]:
-        raise RuntimeError('The existing gateway cannot be the Android device or Linux itself')
+    if default['gateway'] in [client_ip, address]:
+        raise RuntimeError('The existing gateway cannot be the client or Linux itself')
     routes = json.loads(command(['ip', '-j', '-4', 'route', 'show', 'table', 'all']).stdout)
     networks = [ipaddress.ip_network(r['dst'], strict=False) for r in routes if r.get('dst', 'default') != 'default']
     # RFC3927 link-local space, randomly allocated for this invocation, never a game destination.
@@ -80,7 +81,7 @@ def inventory(lan, android=None):
     tables = {str(r.get('table', 'main')) for r in [*routes, *rules]}
     table = secrets.randbelow(50000) + 10000
     while str(table) in tables: table = secrets.randbelow(50000) + 10000
-    return {'lan': lan, 'linux_ip': address, 'android_ip': android, 'client_network': android + '/32' if android else str(subnet),
+    return {'lan': lan, 'linux_ip': address, 'client_ip': client_ip, 'client_network': client_ip + '/32' if client_ip else str(subnet),
             'uplink': default['dev'], 'router': default['gateway'], 'prefix': candidates[0]['prefixlen'],
             'transit': str(transit), 'host_link': str(transit[1]), 'ns_link': str(transit[2]),
             'route_table': table}
@@ -119,7 +120,7 @@ def host_rules(c):
 
 
 def namespace_rules(c):
-    # No service/protocol/port selection. Conntrack NAT keeps the Android's socket flows usable.
+    # No service/protocol/port selection. Conntrack NAT keeps client socket flows usable.
     return f'''table inet {TABLE} {{
  chain forward {{ type filter hook forward priority filter; policy drop;
   iifname "{PEER}" oifname "{TAP}" ip saddr {c['client_network']} counter accept

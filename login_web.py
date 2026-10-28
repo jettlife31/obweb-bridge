@@ -92,28 +92,40 @@ def main():
         say('Outbreak Web login — account setup, separate from the WSS tunnel.')
         while True:
             previous = state.get('last_name', '')
-            name = ask(f'Username [{previous}]: ' if previous else 'Username: ') or previous
-            if not NAME.fullmatch(name):
-                say('Use 1 to 15 letters and numbers, with no spaces.'); continue
-            token = state['identities'].get(name)
-            if token is None:
-                say('If this is already your username on the site, import the transfer code from the page.')
-                mode = ask('[N] New username / [I] Import code / [B] Back: ').lower()
-                if mode == 'b':
-                    continue
-                if mode == 'i':
-                    transfer = getpass.getpass('REO1 code (hidden input): ', stream=tty).strip()
-                    match = TRANSFER.fullmatch(transfer)
-                    if not match or match[1] != name:
-                        say('Invalid code or the code belongs to a different username.'); continue
-                    token = match[2]
-                elif mode == 'n':
-                    token = secrets.token_hex(16)
+            if previous and previous in state['identities']:
+                mode = ask(f'Use saved account "{previous}"? [Y]es / [I]mport / [N]ew: ').lower()
+                if mode in ('', 'y', 'yes'):
+                    name = previous
+                    token = state['identities'][name]
+                elif mode in ('i', 'import'):
+                    mode = 'i'
+                elif mode in ('n', 'new'):
+                    mode = 'n'
                 else:
                     continue
-                # Persist BEFORE the request: a timeout must not lose the identity.
-                state['identities'][name] = token
-                save_state(path, state)
+            else:
+                mode = ask('[N] New account / [I] Import existing account: ').lower()
+
+            if mode in ('i', 'import'):
+                transfer = getpass.getpass('Paste the complete REO1 transfer code: ', stream=tty).strip()
+                match = TRANSFER.fullmatch(transfer)
+                if not match:
+                    say('Code not recognized. Copy the complete REO1 transfer code from the website.')
+                    continue
+                name, token = match.groups()
+                say(f'Importing account "{name}".')
+            elif mode in ('n', 'new'):
+                name = ask('Choose a username (1–15 letters or numbers): ')
+                if not NAME.fullmatch(name):
+                    say('Username must contain 1 to 15 letters or numbers, with no spaces.')
+                    continue
+                token = secrets.token_hex(16)
+            elif not (previous and mode in ('', 'y', 'yes')):
+                continue
+
+            # Persist BEFORE the request: a timeout must not lose the identity.
+            state['identities'][name] = token
+            save_state(path, state)
             secret = credential(name, token)
             say('Registering/checking the username with Outbreak Web…')
             status = register(name, secret)
@@ -135,7 +147,7 @@ def main():
             say(f'  Username: {name}')
             say(f'  Password: {secret}')
             say('This is the game password. Keep it private; do not share screenshots of this screen.')
-            say('It is not entered automatically in ARMSX2. Use the ISO with the DNAS bypass.')
+            say('The game does not fill this in automatically. Use the patched game image.')
             ask('Save these details, then press Enter to start the gateway:')
             return
 

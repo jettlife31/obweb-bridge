@@ -1,96 +1,128 @@
-# Generic WSS gateway for Android / ARMSX2
+# obweb-bridge
 
-This project connects ARMSX2 on Android, using Online / Sockets, to the Outbreak Web Ethernet-over-WebSocket transport through a Linux computer. The emulator is not modified.
+A Linux IPv4 gateway that carries client traffic to Outbreak Web over its Ethernet WebSocket transport. Clients can be ARMSX2 on Android, a physical PS2, or another computer on the same LAN. The emulator does not need to be modified. Windows and WSL2 host backends are not implemented yet.
 
-The gateway routes client IPv4 traffic through an isolated Linux network namespace, generic NAT, a TAP device, and the binary WSS connection. Remote DHCP provides the tunnel address, subnet, gateway, DNS and lease. DNS requests are forwarded unchanged to the DNS server supplied by remote DHCP. The gateway has no game destination, application port, or domain routing rules.
+## Setup
 
-This is an IPv4 gateway with NAT, not a layer-2 bridge from the emulated PS2 adapter. In Sockets mode, ARMSX2 terminates the emulated network inside Android. The Linux computer does not receive the PS2's original Ethernet frames. The TAP/WSS path carries frames without selecting game IPs, application protocols or ports; the kernel handles routing and NAT.
+### 0. Prerequisites
 
-The only Ethernet normalization replaces an all-zero destination MAC received from the server with the TAP interface MAC. That observed frame format would otherwise not be delivered normally to the kernel. No remote destination filters are used.
+#### Patch your game image
 
-## Requirements
+Use the matching xdelta patch for your own USA game image:
 
-Linux, Python 3.10+, `iproute2`, `nftables`, TUN/TAP and network namespaces. On Debian or Ubuntu, install system packages if needed:
+- Outbreak USA v2.00: `xdelta/Resident Evil - Outbreak (USA) (v2.00).xdelta`
+  - Original ISO SHA-256: `69ae2c48e6f01e2605659feabb54eb9b82c63a809bdc8a78ad2d160b3c59a4a1`
+  - Patched ISO SHA-256: `0a6b912d873cb262e991f359125e37dde4848864d905c888f822ed98cf9bc0c1`
+- Outbreak File #2 USA: `xdelta/Resident Evil - Outbreak - File 2 (USA).xdelta`
+  - Original ISO SHA-256: `bf33c7bcd727868abe6866d747a930c3c54bb7395ab8ebdfce1f7137641f6759`
+  - Patched ISO SHA-256: `6363263595ea0a4d12308b3c05e2a9c53cc92e96469c0509ee7952b97c09c970`
+
+Apply the patch to a copy of the matching original image and keep the original unchanged. The SHA-256 values above were verified against the source and patched ISO files. For example, with `xdelta3`:
 
 ```sh
-sudo apt install python3-venv iproute2 nftables
+xdelta3 -d -s "original.iso" "patch.xdelta" "outbreak-web.iso"
 ```
 
-Copy `config.example.json` to `config.local.json`, then set `lan_interface` to the Linux interface connected to the client network. The client subnet is detected automatically. The optional `android_ip` setting can restrict access to one IPv4 address. Keep `config.local.json` local; it is ignored by Git.
+#### Prepare your Outbreak Web account
 
-## Run
+Before starting the bridge, sign in to Outbreak Web and:
 
-Run the launcher as a regular user:
+1. Open **Settings > Online > Show my code** and copy your REO transfer code. The bridge login will ask you to paste this code when you choose **Import**.
+2. Open **Saves > Export save (.ps2)** and save the exported file somewhere safe for your emulator or console setup.
+
+Keep the REO code and exported save private. Do not include them in screenshots or share them with the bridge project.
+
+### 1. Prepare the Linux bridge and route the client through it
+
+The bridge runs on a Linux computer. Install Python 3.10+, `iproute2`, `nftables`, and TUN/TAP support. On Debian or Ubuntu:
+
+```sh
+sudo apt install python3-venv iproute2 nftables procps
+```
+
+Set `OBWEB_LAN_INTERFACE` to skip the interface menu, and optionally set `OBWEB_LAN_IP` when that interface has more than one local IPv4 address. `OBWEB_CLIENT_IP` optionally restricts the forwarded client to one address. The WSS endpoint and origin can be overridden with `OBWEB_WSS_URL` and `OBWEB_WSS_ORIGIN`. Leave them unset for the service defaults. For example:
+
+```sh
+export OBWEB_LAN_INTERFACE=YOUR_LAN_INTERFACE
+export OBWEB_LAN_IP=192.168.1.10
+./start-local.sh
+```
+
+Without `OBWEB_LAN_INTERFACE`, choose the interface from the menu. The native launcher starts as a regular user and requests `sudo` only for temporary network setup.
 
 ```sh
 ./start-local.sh
 ```
 
-It creates `.venv`, installs the pinned Python dependency, displays a read-only network plan, prepares the Outbreak Web login, then requests `sudo` to configure temporary networking. Wait for **READY**. It does not change the Linux computer's default gateway or install a persistent service. Press Ctrl+C to clean up.
+#### Run the published container image
 
-Optional direct commands:
+The container uses host networking so it can see the Linux host's actual LAN interface and IP. It applies routing only to forwarded client traffic; the host's own connections keep their normal route. Host networking and the packet/TAP operations require a Linux Docker Engine. Docker Desktop's host mode is not suitable for this bridge's packet-forwarding path.
 
-```sh
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-.venv/bin/python gateway.py --config config.local.json
-.venv/bin/python gateway.py --config config.local.json --probe
-sudo .venv/bin/python gateway.py --config config.local.json --run
-```
-
-`--probe` checks WSS and remote DHCP only. It does not authenticate to the game.
-
-## Client and ARMSX2 setup
-
-The client and Linux computer must be on the same LAN subnet, with Wi-Fi client isolation disabled. Set the client's Wi-Fi gateway and DNS to the Linux LAN IP printed by the program. Keep a valid client address and subnet mask. Do not configure a public secondary DNS.
-
-In ARMSX2, enable Ethernet and select **Online / Sockets**. Keep the PS2 IP, gateway and subnet automatic, and set primary/secondary DNS manually to the Linux LAN IP. Fully restart the game after changing network settings; do not resume a save state.
-
-The remote IP, gateway and DNS belong to the WSS tunnel and must not be entered as the client's Wi-Fi settings. All IPv4 traffic routed through Linux from the detected LAN subnet uses WSS. Clients that continue to use the home router are not redirected. IPv6, VPN, mobile data and same-subnet direct connections are outside this IPv4 gateway. Ordinary Internet access depends on what the remote WSS network provides.
-
-## Account setup
-
-`login_web.py` is separate from packet forwarding. It registers or checks the username and credential over HTTPS. It can create a new identity or import an account using the site's transfer code. The identity is stored in a private local state directory and the derived game password is shown only in the local terminal. Enter it manually in the game. No account credentials are included in this project.
-
-The original Outbreak USA v2.00 and File #2 USA images were preserved; prepared copies use the DNAS bypass. The bypass was verified in code. On 2026-10-24, the user reported that both games connected and started matches in ARMSX2.
-
-## Network behavior and limits
-
-- All IPv4 unicast destinations routed through this gateway use the same WSS path. TCP, UDP and ICMP were exercised in an isolated Linux integration test. There is no application-protocol allowlist.
-- Traffic addressed to Linux itself is local. DNS received by the relay is forwarded through the remote namespace. Local Ethernet discovery such as ARP remains on the LAN.
-- DHCPv4 supplies the remote address, subnet, gateway, DNS and lease. Overlapping networks that make return routing ambiguous are rejected. Classless DHCP routes (options 121/249) and lease renewal are not supported.
-- The gateway shuts down before 90% of the lease expires, or when WSS disconnects. It does not reconnect transparently.
-- NAT changes IP/transport headers and does not rewrite addresses embedded in application payloads.
-- The bridge does not implement DNAS, game login or game services. The DNAS bypass is in the prepared game image.
-- The current client scope is the detected LAN subnet. `--android-ip` can narrow it to one client.
-
-## Diagnostics and privacy
-
-The program does not log packet payloads, arbitrary DNS names, credentials or raw packets. Routine output shows frame counts and DNS query/answer/error counts.
-
-With the gateway running, diagnostics can be started in another terminal:
+Create persistent state directories and the namespace mount point once:
 
 ```sh
-sudo .venv/bin/python diagnose.py --config config.local.json --seconds 45
+sudo mkdir -p /var/lib/obweb-bridge /run/netns
 ```
 
-Try connecting while the diagnostic runs. It reports counts by interface, direction, protocol/port and DNS response code without showing DNS names or remote addresses. An optional `--test-dns ADDRESS` checks a DNS server supplied by remote DHCP through the tunnel. `--dns-name NAME` can compare captured questions with one name; other names remain hidden. The diagnostic does not restart the gateway or change network settings.
-
-## Cleanup and validation
-
-Press Ctrl+C to remove the temporary namespace, interfaces, routes, firewall table and modified sysctls. Restore the client's original Wi-Fi settings afterward. If the process was killed without cleanup, inspect the recorded state and run:
+Then run the image (replace the interface and LAN IP with values from your Linux host):
 
 ```sh
-sudo .venv/bin/python gateway.py --config config.local.json --cleanup
+docker run --rm -it --network host \
+  --cap-add NET_ADMIN --cap-add SYS_ADMIN \
+  --device /dev/net/tun:/dev/net/tun \
+  --security-opt seccomp=unconfined \
+  --mount type=bind,src=/run/netns,dst=/run/netns,bind-propagation=rshared \
+  --mount type=bind,src=/var/lib/obweb-bridge,dst=/var/lib/obweb-bridge \
+  -e OBWEB_LAN_INTERFACE=YOUR_LAN_INTERFACE \
+  -e OBWEB_LAN_IP=192.168.1.10 \
+  ghcr.io/zenaror/obweb-bridge:latest
 ```
 
-The cleanup refuses to interfere with a live instance and never flushes the system firewall ruleset.
+The image stores account credentials and interrupted-run cleanup state under `/var/lib/obweb-bridge`. Keep this directory between runs. `OBWEB_CLIENT_IP`, `OBWEB_WSS_URL`, and `OBWEB_WSS_ORIGIN` can also be passed with `-e`. On a pull request, GitHub Actions builds the image without publishing it. Pushes to `main` publish `latest`, `main`, and a commit tag; version tags publish versioned images. Make the GHCR package public in its GitHub package settings if other users need to pull it without signing in.
 
-Automated tests can be run with:
+The container needs `NET_ADMIN` to add the client-specific route/firewall rules and `SYS_ADMIN` for the temporary network namespace. The default seccomp filter blocks the namespace operations used by this implementation, so the example disables that filter. Run only an image you trust. If the container is forcibly terminated and does not clean up, recover its saved networking state with:
 
 ```sh
-.venv/bin/python -m unittest discover -s tests -v
-sh tests/linux_integration.sh
+docker run --rm --network host \
+  --cap-add NET_ADMIN --cap-add SYS_ADMIN \
+  --security-opt seccomp=unconfined \
+  --mount type=bind,src=/run/netns,dst=/run/netns,bind-propagation=rshared \
+  --mount type=bind,src=/var/lib/obweb-bridge,dst=/var/lib/obweb-bridge \
+  ghcr.io/zenaror/obweb-bridge:latest --cleanup
 ```
 
-The isolated Linux test covers arbitrary TCP/UDP/ICMP and DNS UDP/TCP through a simulated remote endpoint, client IP changes without restarting, no home-router fallback on link failure, preservation of host routing, and cleanup. It is not a physical Android or console test. The user has confirmed successful matches on ARMSX2 for both prepared games; physical PS2 console operation has not been verified.
+Use this only after confirming the bridge container is stopped. On abrupt host power loss, inspect the host's network state before restarting.
+
+The launcher prepares the Outbreak Web login, shows a network plan, and asks for `sudo` to enable temporary routing. The container does the same with its required capabilities. Wait for **READY**. The login helper can create a username or import an existing account with its transfer code; it displays the game password in the terminal for manual entry. Keep that screen private.
+
+Configure the client to use the Linux computer's LAN IP as its **default gateway and DNS server**. Keep the client IP address and subnet mask valid for that LAN. This means setting the network gateway on Android, Windows, or Linux, or setting the PS2 IP, subnet mask, and gateway in the PS2 game's network configuration. The client and Linux computer must share the LAN, and Wi-Fi client isolation must be off.
+
+### 2. Configure the game and network
+
+Even when using an emulator, create a **new in-game network configuration** instead of reusing an old one, and set its network fields to **Automatic**. In the emulator's own Ethernet settings, enable Ethernet, choose **Online / Sockets**, and set primary and secondary DNS manually to the Linux computer's LAN IP. In ARMSX2, these are the emulator's Ethernet settings.
+
+For a physical PS2, create a network configuration with a valid PS2 IP and subnet mask, set its gateway to the Linux computer's LAN IP, and set primary DNS to that same Linux IP. Set secondary DNS to the same address if the game requires one.
+
+Use the Linux LAN IP printed by the bridge. Do not enter the remote DHCP address shown by the bridge into the client's LAN settings.
+
+### 3. Play
+
+Use the patched image, boot the game from a full start, choose NETWORK PLAY, and enter the username and password from the login helper. Press Ctrl+C in the bridge terminal when finished; restore the client's original gateway/DNS settings afterward.
+
+## What it does
+
+The bridge routes IPv4 traffic from the configured client LAN subnet through an isolated Linux namespace, generic NAT, TAP, and the binary WSS connection. The remote DHCP response supplies the tunnel address, gateway, DNS, and lease. DNS requests are forwarded to that remote DNS without domain-specific rules. The transport does not select game IPs, domains, or application ports.
+
+In ARMSX2 Sockets mode, the emulator terminates the virtual PS2 network on Android. This program is therefore an IPv4 gateway with NAT, not a layer-2 bridge from the PS2 Ethernet adapter. It does not implement DNAS or game services; the DNAS bypass is in the patched game image.
+
+The gateway does not change the Linux computer's default route. IPv6, VPN, mobile data, direct same-LAN traffic, DHCP lease renewal, and classless DHCP routes are outside the current path. The session stops if WSS disconnects or before 90% of the remote DHCP lease expires. Ordinary Internet access through the client may be limited to services available through WSS.
+
+## Diagnostics
+
+With the bridge running, use another terminal:
+
+```sh
+sudo .venv/bin/python diagnose.py --lan-interface INTERFACE --seconds 45
+```
+
+The diagnostic reports traffic counts and DNS metadata without logging packet payloads, arbitrary DNS names, credentials, or remote IP addresses.

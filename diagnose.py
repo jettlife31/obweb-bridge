@@ -11,7 +11,6 @@ from network import namespace_socket, NS, TAP
 import collections
 import json
 import os
-from pathlib import Path
 import select
 import socket
 import struct
@@ -46,12 +45,12 @@ def dns_metadata(data, expected_name=None):
     return result
 
 
-def inspect(frame, android, expected_name=None):
+def inspect(frame, client_scope, expected_name=None):
     if len(frame)<34 or frame[12:14]!=b'\x08\x00':return None
     p=frame[14:];h=(p[0]&15)*4
     if p[0]>>4!=4 or h<20 or len(p)<h:return None
     src,dst=socket.inet_ntoa(p[12:16]),socket.inet_ntoa(p[16:20])
-    scope=ipaddress.ip_network(android,strict=False)
+    scope=ipaddress.ip_network(client_scope,strict=False)
     outgoing=ipaddress.ip_address(src) in scope
     if not outgoing and ipaddress.ip_address(dst) not in scope:return None
     r={'direction':'from-client' if outgoing else 'to-client','ip_protocol':p[9]}
@@ -94,27 +93,28 @@ def tap_counts():
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--config',default=str(Path(__file__).with_name('config.local.json')))
+    parser.add_argument('--lan-interface',default=os.environ.get('OBWEB_LAN_INTERFACE'),help='Linux LAN interface used by the bridge')
+    parser.add_argument('--lan-ip',default=os.environ.get('OBWEB_LAN_IP'),help='Local IPv4 used by the bridge')
     parser.add_argument('--seconds',type=int,default=45)
     parser.add_argument('--dns-name',help='DNS test name and capture comparison; other names are not shown')
     parser.add_argument('--test-dns',type=ipaddress.IPv4Address,help='DNS supplied by DHCP, for a namespace/WSS test only')
+    parser.add_argument('--url',default=os.environ.get('OBWEB_WSS_URL','wss://outbreakweb.com/eth'),help='WSS URL used to select the default DNS test name')
     args=parser.parse_args()
+    if not args.lan_interface: parser.error('Set OBWEB_LAN_INTERFACE or pass --lan-interface')
     if os.geteuid():parser.error('Run with sudo; keep the gateway running in another terminal')
     if not 5<=args.seconds<=120:parser.error('Use 5 to 120 seconds')
-    config=json.loads(Path(args.config).read_text());counts=collections.Counter()
-    client_scope=config.get('android_ip')
-    if not client_scope:
-        addresses=json.loads(subprocess.run(['ip','-j','-4','address','show','dev',config['lan_interface']],capture_output=True,text=True,check=True).stdout)
-        scopes=[str(ipaddress.ip_network(f"{a['local']}/{a['prefixlen']}",strict=False)) for a in addresses[0]['addr_info'] if a['scope']=='global']
-        if len(scopes)!=1:parser.error('LAN interface has an ambiguous IPv4 subnet')
-        client_scope=scopes[0]
+    counts=collections.Counter()
+    addresses=json.loads(subprocess.run(['ip','-j','-4','address','show','dev',args.lan_interface],capture_output=True,text=True,check=True).stdout)
+    scopes=[str(ipaddress.ip_network(f"{a['local']}/{a['prefixlen']}",strict=False)) for a in addresses[0]['addr_info'] if a['scope']=='global' and (not args.lan_ip or a['local']==args.lan_ip)]
+    if len(scopes)!=1:parser.error('LAN interface has an ambiguous IPv4 subnet')
+    client_scope=scopes[0]
     before=tap_counts();probe=None
     if args.test_dns and not before.get('available'):
         print('Gateway/TAP not found: wait for READY in the other terminal, then run diagnostics again.',flush=True)
         return
     if args.test_dns:
-        print('Testing DNS through the tunnel, independently of Android...',flush=True)
-        probe=asyncio.run(probe_remote_dns(str(args.test_dns),args.dns_name or urlsplit(config['url']).hostname))
+        print('Testing DNS through the tunnel, independently of client traffic...',flush=True)
+        probe=asyncio.run(probe_remote_dns(str(args.test_dns),args.dns_name or urlsplit(args.url).hostname))
         print('WSS DNS test:',json.dumps(probe),flush=True)
     start=time.monotonic()
     print(f'Passive counters for {args.seconds}s. Try connecting now. No packets or DNS names are saved.',flush=True)
@@ -122,7 +122,7 @@ def main():
         while (left:=args.seconds-(time.monotonic()-start))>0:
             if not select.select([sock],[],[],min(left,1))[0]:continue
             frame,info=sock.recvfrom(65535)
-            if info[0] not in (config['lan_interface'],'obw-host'):continue
+            if info[0] not in (args.lan_interface,'obw-host'):continue
             result=inspect(frame,client_scope,args.dns_name)
             if result:
                 result['interface']=info[0];counts[json.dumps(result,sort_keys=True)]+=1

@@ -109,7 +109,7 @@ async def acquire_lease(ws, mac, timeout=8, attempts=3):
         raise RuntimeError('Tunnel DHCP did not respond')
     address, opts = await exchange(dhcp_request(mac, xid), 2)
     if len(opts.get(54, b'')) != 4:
-        raise RuntimeError('DHCP sem identificador do servidor')
+        raise RuntimeError('DHCP offer is missing the server identifier')
     server = socket.inet_ntoa(opts[54])
     acknowledged, ack = await exchange(dhcp_request(mac, xid, address, server), 5)
     if acknowledged != address or ack.get(54) != opts[54]:

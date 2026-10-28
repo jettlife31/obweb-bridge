@@ -5,7 +5,6 @@ import asyncio
 import ipaddress
 import json
 import os
-from pathlib import Path
 import re
 import secrets
 import signal
@@ -16,6 +15,9 @@ from urllib.parse import urlsplit
 from dns_proxy import DNSDatagrams, Resolver
 from network import Network, cleanup_saved, inventory, host_rules, namespace_rules, namespace_socket
 from wire import acquire_lease, inbound
+
+WSS_URL = "wss://outbreakweb.com/eth"
+WSS_ORIGIN = "https://outbreakweb.com"
 
 def connection(url, origin=None):
     try:
@@ -71,7 +73,7 @@ async def relay(ws, fd, mac, lease, stop, dns_resolver=None):
             if written != len(packet):
                 raise RuntimeError('Incomplete TAP write')
             counts['received'] += 1
-        raise RuntimeError('WebSocket encerrado pelo servidor')
+        raise RuntimeError('WebSocket closed by the server')
 
     async def status():
         while True:
@@ -119,7 +121,7 @@ async def run(c, url, origin):
                 network.activate(lease)
                 resolver.servers = lease.dns
                 print(f'Remote DHCP: IPv4={lease.address}/{lease.prefix}, gateway={lease.gateway}, DNS={lease.dns}', flush=True)
-                print(f"READY: Android gateway/DNS = {c['linux_ip']}; client network = {c['client_network']}", flush=True)
+                print(f"READY: Client gateway/DNS = {c['linux_ip']}; client network = {c['client_network']}", flush=True)
                 print(f'Virtual lease: {lease.seconds}s; preventive shutdown in {int(lease.seconds * .9)}s.', flush=True)
                 await relay(ws, network.fd, mac, lease, stop, resolver)
         main = asyncio.create_task(session())
@@ -142,28 +144,23 @@ async def run(c, url, origin):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--config', help='JSON file with URL/Origin and local client/interface settings')
     actions = parser.add_mutually_exclusive_group()
     actions.add_argument('--run', action='store_true', help='Enable temporary networking; requires root')
     actions.add_argument('--probe', action='store_true', help='Test remote WSS/DHCP only, without root or network changes')
     actions.add_argument('--cleanup', action='store_true', help='Remove resources recorded from an interrupted run')
-    parser.add_argument('--lan-interface', help='Linux interface connected to the client network, e.g. enp3s0')
-    parser.add_argument('--android-ip', help='Optional: restrict to one IPv4; defaults to the LAN subnet')
-    parser.add_argument('--url', help='WSS URL for Ethernet transport')
-    parser.add_argument('--origin', help='Origin required by the service, if applicable')
+    parser.add_argument('--lan-interface', default=os.environ.get('OBWEB_LAN_INTERFACE'), help='Linux interface connected to the client network')
+    parser.add_argument('--lan-ip', default=os.environ.get('OBWEB_LAN_IP'), help='Local IPv4 on that interface used as client gateway/DNS')
+    parser.add_argument('--client-ip', default=os.environ.get('OBWEB_CLIENT_IP'), help='Optional: restrict to one client IPv4')
+    parser.add_argument('--url', default=os.environ.get('OBWEB_WSS_URL', WSS_URL), help='WSS URL for Ethernet transport')
+    parser.add_argument('--origin', default=os.environ.get('OBWEB_WSS_ORIGIN', WSS_ORIGIN), help='Origin required by the service')
     parser.add_argument('--show-rules', action='store_true', help='Include proposed rules in the plan; does not apply them')
     args = parser.parse_args()
     try:
-        if args.config:
-            config = json.loads(Path(args.config).read_text())
-            for attr in ('url', 'origin', 'lan_interface', 'android_ip'):
-                if getattr(args, attr) is None and attr in config:
-                    setattr(args, attr, config[attr])
         if args.cleanup:
             cleanup_saved()
             return 0
         if not args.url or urlsplit(args.url).scheme != 'wss' or not urlsplit(args.url).hostname:
-            parser.error('provide --url wss://server/path')
+            parser.error('invalid built-in WSS endpoint')
         if urlsplit(args.url).username or urlsplit(args.url).password:
             parser.error('do not put credentials in the URL')
         if args.probe:
@@ -173,14 +170,15 @@ def main():
             parser.error('provide --lan-interface; without --run, only show the plan')
         if not re.fullmatch(r'[a-zA-Z0-9_-]{1,15}', args.lan_interface):
             parser.error('unsupported interface name; use a simple physical interface')
-        android = str(ipaddress.IPv4Address(args.android_ip)) if args.android_ip else None
-        c = inventory(args.lan_interface, android)
+        client_ip = str(ipaddress.IPv4Address(args.client_ip)) if args.client_ip else None
+        lan_ip = str(ipaddress.IPv4Address(args.lan_ip)) if args.lan_ip else None
+        c = inventory(args.lan_interface, client_ip, lan_ip)
         if not args.run:
             print('PLAN — no configuration changed')
             print(json.dumps(c, ensure_ascii=False, indent=2))
             print('All IPv4 traffic routed from LAN clients goes through WSS, with no destination/protocol/port selection.')
             print('Remote DHCP provides IP/gateway/DNS; transit network is allocated automatically.')
-            print('On Android: Wi-Fi gateway and DNS = linux_ip. In ARMSX2: Online / Sockets.')
+            print('Set the client gateway and DNS to linux_ip.')
             print('Forwarding must be allowed by the existing firewall; its policies are not replaced.')
             if args.show_rules:
                 print(host_rules(c)); print(namespace_rules(c))
