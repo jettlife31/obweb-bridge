@@ -1,0 +1,25 @@
+NOTICE
+======
+
+mymc-py is a Python 3 port of, and is substantially derived from, the
+following public-domain work:
+
+    "mymc" / "ps2mc" - PlayStation 2 memory card image utilities
+    By Ross Ridge
+    Public Domain
+    Original (Python 2) source: https://sourceforge.net/p/mymc-opl/code/
+
+Ross Ridge also authored the "PlayStation 2 Memory Card File System"
+specification document (public domain) that this implementation follows:
+https://github.com/PCSX2/pcsx2/blob/master/pcsx2/Reference/PS2-MemoryCardFileSystem.htm
+
+The ECC routines were also ported (as "CalculateECC") into PCSX2 and its
+derivatives (including AetherSX2), which is why .ps2 images produced by this
+project are directly compatible with those emulators.
+
+The Python 3 port, the command-line interface, the folder-save "build-card"
+tool, the validation tool and the tests are additional work licensed under
+the MIT License (see LICENSE).
+
+This product includes software developed by Ross Ridge
+(http://mymc.berlios.de, public domain).

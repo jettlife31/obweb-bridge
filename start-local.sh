@@ -21,7 +21,8 @@ else
       if [ -d /run/outbreak-gateway ]; then
         printf 'Recorded bridge state found; attempting safe cleanup before retrying.\n' >&2
         sudo "$BASE_DIR/.venv/bin/python" "$BASE_DIR/gateway.py" --cleanup
-        "$BASE_DIR/.venv/bin/python" "$BASE_DIR/gateway.py" "$@"
+        PLAN_OUTPUT=$("$BASE_DIR/.venv/bin/python" "$BASE_DIR/gateway.py" "$@")
+        printf '%s\n' "$PLAN_OUTPUT"
       else
         exit "$PLAN_STATUS"
       fi
@@ -29,6 +30,13 @@ else
     *) exit "$PLAN_STATUS" ;;
   esac
 fi
+TRANSIT_NETWORK=$(printf '%s\n' "$PLAN_OUTPUT" | sed -n 's/^  "transit": "\([^"]*\)",$/\1/p')
+ROUTE_TABLE=$(printf '%s\n' "$PLAN_OUTPUT" | sed -n 's/^  "route_table": \([0-9][0-9]*\)$/\1/p')
+if [ -z "$TRANSIT_NETWORK" ] || [ -z "$ROUTE_TABLE" ]; then
+  printf 'Could not retain the selected network plan; stopping before login.\n' >&2
+  exit 1
+fi
+set -- "$@" --transit-network "$TRANSIT_NETWORK" --route-table "$ROUTE_TABLE"
 env -u OBWEB_RUN_MODE -u OBWEB_USERNAME -u OBWEB_REO_CODE \
   "$BASE_DIR/.venv/bin/python" "$BASE_DIR/login_web.py"
 printf '\nAll IPv4 traffic routed from LAN clients will use WSS. Wait for READY. Press Ctrl+C to stop.\n'

@@ -7,7 +7,8 @@ import secrets
 import subprocess
 from urllib.parse import urlsplit
 from dns_proxy import Resolver
-from network import namespace_socket, NS, TAP
+from network import namespace_socket, NS, TAP, VETH, PEER
+LOCAL_ETHERNET = 'obw-pcsx2'
 import collections
 import json
 import os
@@ -17,10 +18,11 @@ import struct
 import time
 
 
-def dns_metadata(data, expected_name=None):
+def dns_metadata(data, expected_name=None, show_name=False):
     if len(data) < 12: return {}
     fields = struct.unpack_from('!6H', data)
-    result = {'dns_flags': fields[1], 'dns_questions': fields[2], 'dns_additional': fields[5], 'dns_bytes': len(data)}
+    result = {'dns_flags': fields[1], 'dns_questions': fields[2], 'dns_answers': fields[3],
+              'dns_authority': fields[4], 'dns_additional': fields[5], 'dns_bytes': len(data)}
     if not fields[2]: return result
     labels = []; offset = 12; end = None; seen = set()
     try:
@@ -39,21 +41,29 @@ def dns_metadata(data, expected_name=None):
         if end + 4 > len(data): return result
         typ, cls = struct.unpack_from('!HH', data, end)
         result.update(dns_qtype=typ, dns_qclass=cls)
+        if show_name:
+            result['dns_qname'] = '.'.join(labels).lower()
         if expected_name is not None:
             result['dns_matches_requested_name'] = '.'.join(labels).lower() == expected_name.rstrip('.').lower()
     except (UnicodeError, struct.error): pass
     return result
 
 
-def inspect(frame, client_scope, expected_name=None):
+def inspect(frame, client_scope, expected_name=None, pcsx2_ip=None, show_dns_names=False):
     if len(frame)<34 or frame[12:14]!=b'\x08\x00':return None
     p=frame[14:];h=(p[0]&15)*4
     if p[0]>>4!=4 or h<20 or len(p)<h:return None
     src,dst=socket.inet_ntoa(p[12:16]),socket.inet_ntoa(p[16:20])
     scope=ipaddress.ip_network(client_scope,strict=False)
-    outgoing=ipaddress.ip_address(src) in scope
-    if not outgoing and ipaddress.ip_address(dst) not in scope:return None
-    r={'direction':'from-client' if outgoing else 'to-client','ip_protocol':p[9]}
+    src_ip, dst_ip = ipaddress.ip_address(src), ipaddress.ip_address(dst)
+    if pcsx2_ip is not None and (src_ip == pcsx2_ip or dst_ip == pcsx2_ip):
+        outgoing = src_ip == pcsx2_ip
+        direction = 'from-pcsx2' if outgoing else 'to-pcsx2'
+    else:
+        outgoing=src_ip in scope
+        if not outgoing and dst_ip not in scope:return None
+        direction='from-client' if outgoing else 'to-client'
+    r={'direction':direction,'ip_protocol':p[9]}
     if p[9] in (6,17) and len(p)>=h+8 and not int.from_bytes(p[6:8],'big')&0x1fff:
         sp,dp=struct.unpack_from('!HH',p,h)
         r['service_port']=dp if outgoing else sp
@@ -61,7 +71,7 @@ def inspect(frame, client_scope, expected_name=None):
         if p[9]==17 and 53 in (sp,dp) and len(p)>=h+20:
             data=p[h+8:];r['dns_response']=bool(data[2]&128)
             if data[2]&128:r['dns_rcode']=data[3]&15
-            r.update(dns_metadata(data, expected_name))
+            r.update(dns_metadata(data, expected_name, show_dns_names))
     return r
 
 
@@ -71,7 +81,7 @@ async def probe_remote_dns(server, hostname):
         raise ValueError('Invalid endpoint hostname')
     query = secrets.token_bytes(2) + struct.pack('!5H', 0x100, 1, 0, 0, 0)
     query += b''.join(bytes([len(label)]) + label for label in labels) + b'\0\0\1\0\1'
-    resolver = Resolver('', namespace_socket)
+    resolver = Resolver(None, namespace_socket)
     resolver.servers = (server,)
     try:
         response = await resolver.resolve(query)
@@ -91,24 +101,49 @@ def tap_counts():
     except (ValueError, KeyError, IndexError): return {'available': False}
 
 
+def link_counts(interface, namespace=False):
+    command = ['ip', '-j', '-s', 'link', 'show', 'dev', interface]
+    if namespace:
+        command = ['ip', 'netns', 'exec', NS, *command]
+    result = subprocess.run(command, capture_output=True, text=True)
+    if result.returncode: return {'available': False}
+    try:
+        link = json.loads(result.stdout)[0]
+        stats = link.get('stats64', link.get('stats', {}))
+        return {'available': True,
+                'rx_packets': stats['rx']['packets'], 'tx_packets': stats['tx']['packets'],
+                'rx_dropped': stats['rx']['dropped'], 'tx_dropped': stats['tx']['dropped']}
+    except (ValueError, KeyError, IndexError): return {'available': False}
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--lan-interface',help='Linux LAN interface used by the bridge')
     parser.add_argument('--lan-ip',help='Local IPv4 used by the bridge')
+    parser.add_argument('--client-ip',type=ipaddress.IPv4Address,help='Restrict passive capture to one LAN client IPv4')
+    parser.add_argument('--pcsx2-ip',type=ipaddress.IPv4Address,help='Local PCSX2 guest IP; captures only that endpoint on obw-pcsx2')
     parser.add_argument('--seconds',type=int,default=45)
     parser.add_argument('--dns-name',help='DNS test name and capture comparison; other names are not shown')
+    parser.add_argument('--show-dns-names', action='store_true',
+                        help='Opt in to showing DNS question names; requires --pcsx2-ip')
     parser.add_argument('--test-dns',type=ipaddress.IPv4Address,help='DNS supplied by DHCP, for a namespace/WSS test only')
     parser.add_argument('--url',default='wss://outbreakweb.com/eth',help='WSS URL used to select the default DNS test name')
     args=parser.parse_args()
     if not args.lan_interface: parser.error('Pass --lan-interface')
+    if args.client_ip and args.pcsx2_ip: parser.error('Choose either --client-ip or --pcsx2-ip')
+    if args.show_dns_names and not args.pcsx2_ip: parser.error('--show-dns-names requires --pcsx2-ip')
     if os.geteuid():parser.error('Run with sudo; keep the gateway running in another terminal')
     if not 5<=args.seconds<=120:parser.error('Use 5 to 120 seconds')
     counts=collections.Counter()
     addresses=json.loads(subprocess.run(['ip','-j','-4','address','show','dev',args.lan_interface],capture_output=True,text=True,check=True).stdout)
     scopes=[str(ipaddress.ip_network(f"{a['local']}/{a['prefixlen']}",strict=False)) for a in addresses[0]['addr_info'] if a['scope']=='global' and (not args.lan_ip or a['local']==args.lan_ip)]
     if len(scopes)!=1:parser.error('LAN interface has an ambiguous IPv4 subnet')
-    client_scope=scopes[0]
+    client_scope=str(args.client_ip) + '/32' if args.client_ip else scopes[0]
     before=tap_counts();probe=None
+    links_before = {'obw-pcsx2': link_counts(LOCAL_ETHERNET),
+                    'obw-host': link_counts(VETH),
+                    'obw-peer': link_counts(PEER, namespace=True),
+                    'obw-tap': before}
     if args.test_dns and not before.get('available'):
         print('Gateway/TAP not found: wait for READY in the other terminal, then run diagnostics again.',flush=True)
         return
@@ -117,16 +152,38 @@ def main():
         probe=asyncio.run(probe_remote_dns(str(args.test_dns),args.dns_name or urlsplit(args.url).hostname))
         print('WSS DNS test:',json.dumps(probe),flush=True)
     start=time.monotonic()
-    print(f'Passive counters for {args.seconds}s. Try connecting now. No packets or DNS names are saved.',flush=True)
+    if args.pcsx2_ip:
+        print(f'Passive PCSX2 counters for {args.seconds}s on {LOCAL_ETHERNET}. No packets or DNS names are saved.',flush=True)
+    elif args.client_ip:
+        print(f'Passive counters for the selected LAN client for {args.seconds}s. No packets or DNS names are saved.',flush=True)
+    else:
+        print(f'Passive counters for the full LAN subnet for {args.seconds}s. Use --client-ip to avoid unrelated LAN traffic. No packets or DNS names are saved.',flush=True)
+    frame_counts=collections.Counter()
+    capture_interfaces = (LOCAL_ETHERNET,) if args.pcsx2_ip else (args.lan_interface,)
     with socket.socket(socket.AF_PACKET,socket.SOCK_RAW,socket.htons(3)) as sock:
         while (left:=args.seconds-(time.monotonic()-start))>0:
             if not select.select([sock],[],[],min(left,1))[0]:continue
             frame,info=sock.recvfrom(65535)
-            if info[0] not in (args.lan_interface,'obw-host'):continue
-            result=inspect(frame,client_scope,args.dns_name)
+            if info[0] not in capture_interfaces:continue
+            if info[0] == LOCAL_ETHERNET:
+                packet_direction = 'tx' if info[2] == getattr(socket, 'PACKET_OUTGOING', 4) else 'rx'
+                ethertype = frame[12:14].hex() if len(frame) >= 14 else 'short'
+                frame_counts[(packet_direction, ethertype)] += 1
+            result=inspect(frame,client_scope,args.dns_name,
+                           args.pcsx2_ip if info[0] == LOCAL_ETHERNET else None,
+                           args.show_dns_names and info[0] == LOCAL_ETHERNET)
             if result:
                 result['interface']=info[0];counts[json.dumps(result,sort_keys=True)]+=1
-    print(json.dumps({'dns_wss_selftest':probe,'tap_before':before,'tap_after':tap_counts(),'traffic':[dict(json.loads(k),count=v) for k,v in counts.items()]},indent=2))
+    links_after = {'obw-pcsx2': link_counts(LOCAL_ETHERNET),
+                    'obw-host': link_counts(VETH),
+                   'obw-peer': link_counts(PEER, namespace=True),
+                   'obw-tap': tap_counts()}
+    tap_after = links_after['obw-tap']
+    print(json.dumps({'dns_wss_selftest':probe,'tap_before':before,'tap_after':tap_after,
+                      'links_before':links_before,'links_after':links_after,
+                      'local_ethernet_frames':[{ 'direction': direction, 'ethertype': ethertype, 'count': count }
+                                         for (direction, ethertype), count in frame_counts.items()],
+                      'traffic':[dict(json.loads(k),count=v) for k,v in counts.items()]},indent=2))
 
 
 if __name__=='__main__':main()

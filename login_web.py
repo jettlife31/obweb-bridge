@@ -11,6 +11,8 @@ import tempfile
 import urllib.error
 import urllib.request
 
+from memory_card import ensure_account_cards, existing_account_cards
+
 REGISTER_URL = 'https://outbreakweb.com/api/kk/register'
 NAME = re.compile(r'[A-Za-z0-9]{1,15}\Z')
 TRANSFER = re.compile(r'REO1-([A-Za-z0-9]{1,15})-([0-9a-f]{32})\Z')
@@ -54,6 +56,10 @@ def load_state(path):
     value = json.loads(path.read_text())
     if not isinstance(value, dict) or not isinstance(value.get('identities'), dict):
         raise ValueError('Invalid local state')
+    for key in ('memory_cards', 'pending_memory_cards'):
+        preferences = value.get(key, {})
+        if not isinstance(preferences, dict) or any(type(flag) is not bool for flag in preferences.values()):
+            raise ValueError('Invalid local memory-card preferences')
     for name, token in value['identities'].items():
         credential(name, token)
     return value
@@ -74,6 +80,35 @@ def save_state(path, value):
             os.unlink(tmp)
 
 
+def generated_card_directory(container=False):
+    if container:
+        return state_path().parent / 'memcards'
+    return Path(__file__).resolve().parent / 'generated-memcards'
+
+
+def prepare_memory_card(name, container=False):
+    try:
+        paths, created = ensure_account_cards(name, generated_card_directory(container))
+    except (OSError, ValueError):
+        raise ValueError('Account saved, but memory-card generation failed. Check the output directory and retry; existing cards were preserved.') from None
+    return paths, created
+
+
+def show_memory_cards(paths, created, say, container=False):
+    if not paths:
+        say('Memory-card generation skipped; use your existing or exported memory card.')
+        return
+    for path in paths:
+        say(f'  Memory card: {path}')
+    say('Memory card created.' if created else 'Existing memory card preserved.')
+    say('Select this card, create the in-game network configuration, then use Go Online with the password above.')
+    if container:
+        say('Memory cards are stored in the persistent volume. Copy them from another terminal while the container is running:')
+        for path in paths:
+            say(f'  docker cp CONTAINER_NAME:"{path}" ./{path.name}')
+        say('Replace CONTAINER_NAME with the container name shown by docker ps.')
+
+
 def login_from_environment():
     """Non-interactive account setup for containers and scripted launches."""
     name = os.environ.get('OBWEB_USERNAME', '')
@@ -90,11 +125,16 @@ def login_from_environment():
 
     path = state_path()
     state = load_state(path)
+    pending = state.setdefault('pending_memory_cards', {})
+    new_account = not transfer and name not in state['identities']
     if transfer:
+        pending.pop(name, None)
         token = match[2]
     else:
         # Keep a generated identity stable across container restarts.
         token = state['identities'].get(name) or secrets.token_hex(16)
+        if new_account:
+            pending[name] = True
 
     state['identities'][name] = token
     save_state(path, state)
@@ -111,15 +151,24 @@ def login_from_environment():
 
     state['last_name'] = name
     save_state(path, state)
-    print('Account accepted. Enter these details on the game login screen:', flush=True)
+    card_paths, card_created = [], False
+    if not transfer and pending.get(name, False):
+        card_paths, card_created = prepare_memory_card(name, container=True)
+        pending.pop(name, None)
+        save_state(path, state)
+    else:
+        card_paths = existing_account_cards(name, generated_card_directory(container=True))
+    print('Account accepted. Game login details:', flush=True)
     print(f'  Username: {name}', flush=True)
     print(f'  Password: {secret}', flush=True)
-    print('This is the game password. Keep the container logs private.', flush=True)
-    print('The game does not fill this in automatically. Use the patched game image.', flush=True)
+    print(f'  REO1 transfer code: REO1-{name}-{token}', flush=True)
+    print('Use the username and password in the game. Save the REO1 code to import this account later.', flush=True)
+    print('Keep these credentials and the container logs private.', flush=True)
+    show_memory_cards(card_paths, card_created, lambda message: print(message, flush=True), container=True)
 
 
 def main():
-    if os.geteuid() == 0:
+    if hasattr(os, 'geteuid') and os.geteuid() == 0:
         raise ValueError('Run the launcher as a regular user, without sudo.')
     if os.environ.get('OBWEB_RUN_MODE') == 'container':
         if os.environ.get('OBWEB_REO_CODE') and not os.environ.get('OBWEB_USERNAME'):
@@ -127,7 +176,9 @@ def main():
         login_from_environment()
         return
     # All interactive credentials stay in the local terminal, not shell stdout/logs.
-    with open('/dev/tty', 'w') as tty, open('/dev/tty', 'r') as tty_input:
+    output_device = 'CONOUT$' if os.name == 'nt' else '/dev/tty'
+    input_device = 'CONIN$' if os.name == 'nt' else '/dev/tty'
+    with open(output_device, 'w') as tty, open(input_device, 'r') as tty_input:
         def say(text):
             tty.write(text + '\n'); tty.flush()
         def ask(text):
@@ -191,12 +242,27 @@ def main():
             if not 200 <= status < 300:
                 raise ValueError(f'The service rejected registration (HTTP {status}); the gateway was not started.')
             state['last_name'] = name
+            preferences = state.setdefault('memory_cards', {})
+            if mode in ('i', 'import'):
+                while True:
+                    answer = ask('Create memory cards for this imported account? [y/N]: ').lower()
+                    if answer in ('', 'n', 'no', 'y', 'yes'):
+                        preferences[name] = answer in ('y', 'yes')
+                        break
+                    say('Choose y or n.')
+            elif mode in ('n', 'new'):
+                preferences[name] = True
             save_state(path, state)
-            say('Account accepted. Enter these details on the game login screen:')
+            card_paths, card_created = [], False
+            if preferences.get(name, True):
+                card_paths, card_created = prepare_memory_card(name)
+            say('Account accepted. Game login details:')
             say(f'  Username: {name}')
             say(f'  Password: {secret}')
-            say('This is the game password. Keep it private; do not share screenshots of this screen.')
-            say('The game does not fill this in automatically. Use the patched game image.')
+            say(f'  REO1 transfer code: REO1-{name}-{token}')
+            say('Use the username and password in the game. Save the REO1 code to import this account later.')
+            say('Keep these credentials private; do not share screenshots of this screen.')
+            show_memory_cards(card_paths, card_created, say)
             ask('Save these details, then press Enter to start the gateway:')
             return
 

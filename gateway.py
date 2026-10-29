@@ -14,8 +14,10 @@ import sys
 from urllib.parse import urlsplit
 
 from dns_proxy import DNSDatagrams, Resolver
-from network import Network, cleanup_saved, inventory, host_rules, namespace_rules, namespace_socket
-from wire import acquire_lease, inbound
+from network import (Network, cleanup_saved, inventory, host_rules, namespace_rules,
+                     namespace_socket)
+from wire import acquire_lease, dhcp_reply, inbound
+from service import Reconnect, serve
 
 WSS_URL = "wss://outbreakweb.com/eth"
 WSS_ORIGIN = "https://outbreakweb.com"
@@ -44,11 +46,71 @@ async def probe(url, origin):
         log('This only verifies WebSocket/DHCP, not login or multiplayer.')
 
 
+class DHCPRenewal:
+    """Demultiplex only our pending DHCP transaction from the shared WSS receiver."""
+    def __init__(self, ws, mac):
+        self.ws, self.mac = ws, mac
+        self.xid = None
+        self.responses = asyncio.Queue(maxsize=8)
+
+    async def send(self, packet):
+        self.xid = int.from_bytes(packet[46:50], 'big')
+        await self.ws.send(packet)
+
+    async def recv(self):
+        return await self.responses.get()
+
+    def accept(self, packet):
+        if self.xid is None or not isinstance(packet, bytes):
+            return False
+        if dhcp_reply(packet, self.mac, self.xid) is None:
+            return False
+        try:
+            self.responses.put_nowait(packet)
+        except asyncio.QueueFull:
+            pass
+        return True
+
+    async def maintain(self, lease, resolver=None):
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + lease.seconds
+        while True:
+            await asyncio.sleep(lease.seconds * .5)
+            while True:
+                remaining = deadline - loop.time()
+                if remaining <= 0:
+                    raise Reconnect('Remote DHCP lease expired')
+                try:
+                    renewed = await asyncio.wait_for(
+                        acquire_lease(self, self.mac, timeout=min(8, remaining / 4), attempts=1), remaining)
+                except (OSError, asyncio.TimeoutError, RuntimeError) as exc:
+                    if isinstance(exc, RuntimeError) and str(exc) == 'DHCP rejected by the tunnel':
+                        raise Reconnect('Remote DHCP rejected renewal') from None
+                    remaining = deadline - loop.time()
+                    if remaining > 0:
+                        log('Remote DHCP renewal did not respond; retrying within the current lease.')
+                        await asyncio.sleep(min(30, remaining / 2))
+                    continue
+                finally:
+                    self.xid = None
+                    while not self.responses.empty():
+                        self.responses.get_nowait()
+                if (renewed.address, renewed.prefix, renewed.gateway) != (lease.address, lease.prefix, lease.gateway):
+                    raise Reconnect('Remote DHCP changed the tunnel network')
+                lease = renewed
+                if resolver is not None:
+                    resolver.servers = lease.dns
+                deadline = loop.time() + lease.seconds
+                log(f'Remote DHCP lease renewed for {lease.seconds}s; session continues.')
+                break
+
+
 async def relay(ws, fd, mac, lease, stop, dns_resolver=None):
     loop = asyncio.get_running_loop()
     queue = asyncio.Queue(maxsize=256)
     errors = loop.create_future()
     counts = {'sent': 0, 'received': 0, 'rejected': 0}
+    renewal = DHCPRenewal(ws, mac)
 
     def read_tap():
         try:
@@ -58,6 +120,10 @@ async def relay(ws, fd, mac, lease, stop, dns_resolver=None):
             queue.put_nowait(packet)
         except BlockingIOError:
             pass
+        except OSError:
+            if not errors.done():
+                errors.set_exception(RuntimeError('Local TAP read failed.'))
+            loop.remove_reader(fd)
         except Exception as exc:
             if not errors.done():
                 errors.set_exception(exc)
@@ -70,29 +136,30 @@ async def relay(ws, fd, mac, lease, stop, dns_resolver=None):
 
     async def receive():
         async for packet in ws:
+            if renewal.accept(packet):
+                continue
             packet = inbound(packet, mac, lease)
             if packet is None:
                 counts['rejected'] += 1
                 continue
             # Fail closed on TAP backpressure rather than allocate an unbounded queue.
-            written = os.write(fd, packet)
+            try:
+                written = os.write(fd, packet)
+            except OSError:
+                raise RuntimeError('Local TAP write failed.') from None
             if written != len(packet):
                 raise RuntimeError('Incomplete TAP write')
             counts['received'] += 1
-        raise RuntimeError('WebSocket closed by the server')
+        raise Reconnect('WebSocket closed by the server')
 
     async def status():
         while True:
             await asyncio.sleep(30)
             log(f"Frames: sent={counts['sent']} received={counts['received']} dropped={counts['rejected']}" + (f" | DNS-WSS: {dns_resolver.counts}" if dns_resolver else ''))
 
-    async def expiry():
-        # Renewal changes routing and needs more live evidence; never keep using an expired lease.
-        await asyncio.sleep(lease.seconds * 0.9)
-        raise RuntimeError('Lease is about to expire; restart the gateway and game session')
-
     loop.add_reader(fd, read_tap)
-    tasks = [asyncio.create_task(f()) for f in [transmit, receive, status, expiry, stop.wait]]
+    tasks = [asyncio.create_task(f()) for f in [transmit, receive, status, stop.wait]]
+    tasks.append(asyncio.create_task(renewal.maintain(lease, dns_resolver)))
     try:
         done, _ = await asyncio.wait([*tasks, errors], return_when=asyncio.FIRST_COMPLETED)
         for item in done:
@@ -115,6 +182,11 @@ async def run(c, url, origin):
     for signum in [signal.SIGINT, signal.SIGTERM]:
         loop.add_signal_handler(signum, stop.set)
     try:
+        try:
+            network.setup(mac)
+        except OSError as exc:
+            raise RuntimeError(f'Local network setup failed (OS error {exc.errno}: {exc.strerror})') from None
+
         resolver = Resolver(c['client_network'], namespace_socket)
         try:
             dns_udp, _ = await loop.create_datagram_endpoint(lambda: DNSDatagrams(resolver),
@@ -125,30 +197,46 @@ async def run(c, url, origin):
             dns_tcp = await asyncio.start_server(resolver.tcp, c['linux_ip'], 53, limit=8192)
         except OSError as exc:
             raise RuntimeError(f'Could not bind the TCP DNS listener on the selected LAN address (OS error {exc.errno}: {exc.strerror})') from None
-        try:
-            network.setup(mac)
-        except OSError as exc:
-            raise RuntimeError(f'Local network setup failed (OS error {exc.errno}: {exc.strerror})') from None
         # Ctrl+C must also cancel connection/DHCP establishment, before the relay starts.
+        from websockets.exceptions import WebSocketException
+        activated = False
+
         async def session():
+            nonlocal activated
             try:
                 async with connection(url, origin) as ws:
                     try:
                         lease = await acquire_lease(ws, mac)
-                    except OSError as exc:
-                        raise RuntimeError(f'WSS/DHCP connection failed (OS error {exc.errno}: {exc.strerror})') from None
+                    except (OSError, RuntimeError) as exc:
+                        raise Reconnect('Remote DHCP unavailable') from exc
                     try:
+                        network.validate_lease(lease)
+                    except RuntimeError as exc:
+                        raise Reconnect('Remote DHCP network conflicts with local routing') from exc
+                    # Drop old queued frames: transport reconnection must not
+                    # replay packets from a disconnected game session.
+                    while True:
+                        try:
+                            os.read(network.fd, 65536)
+                        except BlockingIOError:
+                            break
+                    if activated:
+                        network.configure_tunnel(lease)
+                    else:
                         network.activate(lease)
-                    except OSError as exc:
-                        raise RuntimeError(f'Local network activation failed (OS error {exc.errno}: {exc.strerror})') from None
+                        activated = True
                     resolver.servers = lease.dns
                     log(f'Remote DHCP: IPv4={lease.address}/{lease.prefix}, gateway={lease.gateway}, DNS={lease.dns}')
                     log(f"READY: Client gateway/DNS = {c['linux_ip']}; client network = {c['client_network']}")
-                    log(f'Virtual lease: {lease.seconds}s; preventive shutdown in {int(lease.seconds * .9)}s.')
+                    log(f'Virtual lease: {lease.seconds}s; automatic DHCP renewal enabled.')
                     await relay(ws, network.fd, mac, lease, stop, resolver)
-            except OSError as exc:
-                raise RuntimeError(f'WSS connection failed (OS error {exc.errno}: {exc.strerror})') from None
-        main = asyncio.create_task(session())
+            except (WebSocketException, OSError) as exc:
+                raise Reconnect('WSS transport interrupted') from exc
+            finally:
+                resolver.servers = ()
+                network.suspend()
+
+        main = asyncio.create_task(serve(session, log))
         stopping = asyncio.create_task(stop.wait())
         try:
             done, _ = await asyncio.wait([main, stopping], return_when=asyncio.FIRST_COMPLETED)
@@ -175,6 +263,8 @@ def main():
     parser.add_argument('--lan-interface', help='Linux interface connected to the client network')
     parser.add_argument('--lan-ip', help='Local IPv4 on that interface used as client gateway/DNS')
     parser.add_argument('--client-ip', help='Optional: restrict to one client IPv4')
+    parser.add_argument('--transit-network', help=argparse.SUPPRESS)
+    parser.add_argument('--route-table', type=int, help=argparse.SUPPRESS)
     parser.add_argument('--url', default=WSS_URL, help='WSS URL for Ethernet transport')
     parser.add_argument('--origin', default=WSS_ORIGIN, help='Origin required by the service')
     parser.add_argument('--show-rules', action='store_true', help='Include proposed rules in the plan; does not apply them')
@@ -196,13 +286,14 @@ def main():
             parser.error('unsupported interface name; use a simple physical interface')
         client_ip = str(ipaddress.IPv4Address(args.client_ip)) if args.client_ip else None
         lan_ip = str(ipaddress.IPv4Address(args.lan_ip)) if args.lan_ip else None
-        c = inventory(args.lan_interface, client_ip, lan_ip)
+        c = inventory(args.lan_interface, client_ip, lan_ip, args.transit_network, args.route_table)
         if not args.run:
             print('PLAN — no configuration changed')
             print(json.dumps(c, ensure_ascii=False, indent=2))
             print('All IPv4 traffic routed from LAN clients goes through WSS, with no destination/protocol/port selection.')
             print('Remote DHCP provides IP/gateway/DNS; transit network is allocated automatically.')
             print('Set the client gateway and DNS to linux_ip.')
+            print('For PCSX2 on this computer, use start-ethernet.sh instead of this LAN gateway.')
             print('Forwarding must be allowed by the existing firewall; its policies are not replaced.')
             if args.show_rules:
                 print(host_rules(c)); print(namespace_rules(c))

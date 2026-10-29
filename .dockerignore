@@ -7,3 +7,5 @@ tests
 xdelta
 README.md
 diagnose.py
+
+generated-memcards/

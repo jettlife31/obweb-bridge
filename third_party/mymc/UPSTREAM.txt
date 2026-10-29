@@ -1,0 +1,5 @@
+Source: https://github.com/G4brym/mymc-py
+Revision: 0b9380399447f722e93461b440cbc480699ea05c
+Vendored core filesystem, directory and ECC modules.
+See LICENSE and NOTICE for attribution.
+Local change: normalized trailing whitespace and final newlines only.

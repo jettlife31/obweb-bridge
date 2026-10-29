@@ -1,6 +1,10 @@
 #!/bin/sh
 set -eu
 
+if [ "${1:-}" = '--list-interfaces' ]; then
+  exec python /app/container_interfaces.py --list-interfaces
+fi
+
 if [ "$(id -u)" -ne 0 ]; then
   echo 'The container entrypoint must start as root to configure client forwarding.' >&2
   exit 1
@@ -10,14 +14,14 @@ if [ "${1:-}" = '--cleanup' ]; then
   exec python /app/gateway.py --cleanup
 fi
 
+# Discovery is read-only and runs before credentials or persistent state setup.
+python /app/container_interfaces.py
+
 if [ -z "${OBWEB_USERNAME:-}" ]; then
   echo 'Set OBWEB_USERNAME to run the container without interactive input.' >&2
   exit 2
 fi
-if [ -z "${OBWEB_LAN_INTERFACE:-}" ]; then
-  echo 'Set OBWEB_LAN_INTERFACE to the Linux host interface connected to the client LAN.' >&2
-  exit 2
-fi
+
 
 STATE_HOME=${XDG_STATE_HOME:-/var/lib/obweb-bridge/state}
 LOGIN_STATE="$STATE_HOME/outbreak-web-login"

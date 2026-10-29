@@ -7,13 +7,19 @@ import struct
 
 class Resolver:
     def __init__(self, allowed, socket_factory):
-        self.allowed = ipaddress.ip_network(allowed, strict=False) if allowed else None
+        if allowed is None:
+            self.allowed = ()
+        elif isinstance(allowed, (str, ipaddress.IPv4Network, ipaddress.IPv6Network)):
+            self.allowed = (ipaddress.ip_network(allowed, strict=False),)
+        else:
+            self.allowed = tuple(ipaddress.ip_network(network, strict=False) for network in allowed)
         self.socket_factory = socket_factory
         self.servers = ()  # Supplied only by remote DHCP, never a public fallback.
         self.counts = {'queries': 0, 'answers': 0, 'errors': 0}
 
     def accepts(self, address):
-        return self.allowed is not None and ipaddress.ip_address(address) in self.allowed
+        ip = ipaddress.ip_address(address)
+        return any(ip in network for network in self.allowed)
 
     async def resolve(self, data, tcp=False):
         if len(data) < 12 or data[2] & 128:

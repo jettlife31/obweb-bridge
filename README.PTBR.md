@@ -2,7 +2,7 @@
 
 [English](README.md) · [Português (Brasil)](README.PTBR.md) · [Español](README.ES.md)
 
-Um gateway IPv4 para Linux que encaminha o tráfego do cliente ao Outbreak Web pelo transporte Ethernet via WebSocket. Os clientes podem ser o ARMSX2 no Android, um PS2 real ou outro computador na mesma LAN. Não é necessário modificar o emulador. O suporte para hospedar a ponte no Windows ou no WSL2 ainda não está implementado.
+Uma ponte que conecta consoles e emuladores ao Outbreak Web pelo transporte Ethernet via WebSocket. Execute-a no Windows ou no Linux para usar o PCSX2 no mesmo computador, ou use o modo gateway para conectar Android, PS2 real e outros clientes pela LAN. O emulador não precisa ser modificado.
 
 ## Configuração
 
@@ -27,34 +27,104 @@ xdelta3 -d -s "original.iso" "patch.xdelta" "outbreak-web.iso"
 
 #### Prepare sua conta do Outbreak Web
 
-Antes de iniciar a ponte, entre no Outbreak Web e:
+Você pode criar uma conta pelo inicializador da ponte. Ao confirmar o cadastro, ele exibe usuário, senha e código REO1 e gera `outbreak-file1.ps2` e `outbreak-file2.ps2`. Na execução nativa, os cartões ficam em `generated-memcards/`, na pasta do aplicativo.
+
+Para importar uma conta existente do Outbreak Web:
 
 1. Abra **Settings > Online > Show my code** e copie seu código de transferência REO. Ao escolher **Import**, o login da ponte pedirá esse código.
-2. Abra **Saves > Export save (.ps2)** e salve o arquivo exportado em um local seguro para configurar o emulador ou o console.
+2. Abra **Saves > Export save (.ps2)** para exportar seu memory card com o progresso existente.
 
-Mantenha o código REO e o save exportado em sigilo. Não os inclua em capturas de tela nem os compartilhe com o projeto da ponte.
+Na importação nativa, o inicializador pergunta se você deseja gerar os cartões e guarda essa escolha. Você pode usar o cartão exportado do site. Cartões já gerados para a mesma conta são preservados; ao trocar a conta dos arquivos fixos, os cartões anteriores são guardados em `generated-memcards/backups/`.
 
-### 1. Prepare a ponte Linux e encaminhe o cliente por ela
+Mantenha o código REO, a senha e os cartões em sigilo.
 
-A ponte é executada em um computador Linux. Instale Python 3.10+, `iproute2`, `nftables` e suporte a TUN/TAP. No Debian ou Ubuntu:
+### 1. Inicie a ponte
+
+Escolha o modo correspondente à sua configuração:
+
+| Uso | Sistema do computador da ponte | Inicializador |
+|---|---|---|
+| PCSX2 no mesmo computador | Windows | `start-ethernet.ps1` |
+| PCSX2 no mesmo computador | Linux | `start-ethernet.sh` |
+| Android, PS2 real ou outro PC pela LAN | Linux | `start-local.sh` ou Docker |
+
+O gateway da LAN encaminha os dispositivos da sub-rede selecionada; `OBWEB_CLIENT_IP`, quando informado no container, restringe a um cliente. Partidas simultâneas de vários dispositivos ainda não foram validadas. O modo Ethernet local atende um único emulador por instância.
+
+#### PCSX2 local — Windows
+
+Instale Python 3.10+, Npcap e o driver TAP-Windows6 com `tapctl.exe` do OpenVPN. Abra o PowerShell como Administrador e execute:
+
+```powershell
+.\start-ethernet.ps1
+```
+
+Para usar uma TAP-Windows6 dedicada existente, execute `.\start-ethernet.ps1 -Adapter "SUA INTERFACE TAP"`. Esse modo ainda precisa de validação em Windows real.
+
+#### PCSX2 local — Linux
+
+Instale Python 3.10+, `iproute2` e suporte a TUN/TAP. No Debian ou Ubuntu:
+
+```sh
+sudo apt install python3-venv iproute2
+./start-ethernet.sh
+```
+
+Execute o inicializador como usuário comum; ele solicita `sudo` para preparar a interface virtual.
+
+Para usar PCAP com o AppImage do PCSX2, extraia-o e execute o binário extraído com as permissões de captura. O build que usamos tem PCAP; a captura exige permissões adicionais. Em outro terminal, este exemplo considera o arquivo em `~/Downloads/PCSX2.AppImage` — ajuste o nome ao arquivo baixado:
+
+```sh
+cd "$HOME/Downloads"
+./PCSX2.AppImage --appimage-extract
+```
+
+Depois que a ponte mostrar **READY**, abra o PCSX2 com:
+
+```bash
+sudo -E setpriv --reuid="$(id -u)" --regid="$(id -g)" --init-groups \
+  --inh-caps=+net_raw,+net_admin \
+  --ambient-caps=+net_raw,+net_admin \
+  --no-new-privs \
+  env APPDIR="$HOME/Downloads/squashfs-root" \
+      LD_LIBRARY_PATH="$HOME/Downloads/squashfs-root/usr/lib" \
+      "$HOME/Downloads/squashfs-root/usr/bin/pcsx2-qt"
+```
+
+O comando usa `setpriv` do pacote `util-linux` e executa o PCSX2 como seu usuário, com as permissões de rede necessárias. Se extrair em outro diretório, ajuste os três caminhos. Configure o PCAP conforme o passo 2.
+
+#### Cliente em outro aparelho pela LAN
+
+O modo gateway está disponível no Linux e via WSL2 no Windows. Instale Python 3.10+, `iproute2`, `nftables` e suporte a TUN/TAP. No Debian ou Ubuntu:
 
 ```sh
 sudo apt install python3-venv iproute2 nftables procps
-```
-
-O inicializador nativo pergunta qual interface Linux está conectada à LAN do cliente. Nomes comuns são `enp3s0` ou `eno1` para Ethernet e `wlp2s0` ou `wlan0` para Wi-Fi. Ele mostra o endereço IPv4 de cada interface para você escolher a correta.
-
-```sh
 ./start-local.sh
 ```
 
-Execute o inicializador nativo como usuário comum; ele solicita `sudo` apenas ao configurar ou recuperar o estado temporário da rede. O host da ponte precisa ser Linux. Um PC com Windows pode ser cliente se usar o IP LAN da ponte Linux como gateway e DNS.
+Execute como usuário comum. Escolha a interface conectada à LAN do cliente, como `enp3s0` ou `wlp2s0`; o inicializador mostra o IPv4 de cada uma e solicita `sudo` para configurar a rede temporária. O cliente deve estar na mesma LAN, com isolamento de clientes Wi-Fi desativado. Use o IP LAN do computador que executa a ponte como gateway e DNS do cliente. No PS2 real, configure esses campos dentro do jogo, conforme o passo 2.
 
-#### Execute a imagem publicada do container
+#### Execute a imagem do container
 
-Use o Docker Engine no Linux. A rede do host encaminha somente o tráfego do cliente; o Windows pode ser cliente, mas não pode hospedar este backend.
+O container oferece somente o modo gateway da LAN e exige Docker Engine no Linux com `--network host`. Para PCSX2 no mesmo computador, use `start-ethernet.sh` no Linux ou `start-ethernet.ps1` no Windows.
 
-O container exige `OBWEB_LAN_INTERFACE` (a interface Linux conectada à LAN do cliente) e `OBWEB_USERNAME`. `OBWEB_RUN_MODE` é interno e configurado automaticamente. No Compose, informe as mesmas variáveis em `environment:`.
+O container exige `OBWEB_LAN_INTERFACE` (a interface conectada à LAN do cliente) e `OBWEB_USERNAME`. `OBWEB_RUN_MODE` é interno e configurado automaticamente. No Compose, informe as mesmas variáveis em `environment:`.
+
+Antes de rodar a imagem pela primeira vez, é necessário identificar a interface a ser usada, para isso, execute o comando abaixo para listar as interfaces disponíveis:
+
+```bash
+docker run --rm --network host \
+  ghcr.io/zenaror/obweb-bridge:latest --list-interfaces
+```
+
+Você deve obter uma saída parecida com isso:
+```text
+Available interfaces in the container network namespace:
+  enp3s0: 192.168.1.10/24
+  wlo1: 192.168.10.183/24
+Choose the interface on the client LAN. Use Docker Engine on Linux with --network host.
+Docker Desktop may show only VM interfaces; these do not expose the physical LAN to this gateway.
+Example: -e OBWEB_LAN_INTERFACE=enp3s0 (replace with the client LAN interface).
+```
 
 O Docker cria o volume nomeado na primeira execução e o mantém entre execuções. O diretório do namespace de rede é criado dentro do container.
 
@@ -64,12 +134,12 @@ docker run --rm --network host \
   --device /dev/net/tun:/dev/net/tun \
   --security-opt seccomp=unconfined \
   --mount type=volume,src=obweb-bridge-data,dst=/var/lib/obweb-bridge \
-  -e OBWEB_LAN_INTERFACE=wlp2s0 \
+  -e OBWEB_LAN_INTERFACE=enp3s0 \
   -e OBWEB_USERNAME=seu_usuario \
   ghcr.io/zenaror/obweb-bridge:latest
 ```
 
-Troque `wlp2s0` pelo nome da sua interface Linux. Omita o código REO para criar uma conta nova; o nome de usuário do código deve corresponder a `OBWEB_USERNAME`. O container exibe as credenciais do jogo. Se o nome de usuário já existir e não houver um código correspondente, a inicialização informa um erro. O volume Docker `obweb-bridge-data` mantém os dados da conta e da recuperação entre execuções; acrescente `--cleanup` após o nome da imagem para recuperar a rede depois de uma interrupção forçada. Pull requests compilam a imagem; pushes para `main` e tags de versão a publicam.
+Troque `enp3s0` pelo nome da sua interface que o Docker consegue usar. Omita o código REO para criar uma conta nova; o nome de usuário do código deve corresponder a `OBWEB_USERNAME`. O container exibe as credenciais do jogo. Se o nome de usuário já existir e não houver um código correspondente, a inicialização informa um erro. O volume Docker `obweb-bridge-data` mantém os dados da conta e da recuperação entre execuções; acrescente `--cleanup` após o nome da imagem para recuperar a rede depois de uma interrupção forçada.
 
 Acrescente estas opções `-e` antes do nome da imagem somente quando necessário:
 
@@ -80,44 +150,60 @@ Acrescente estas opções `-e` antes do nome da imagem somente quando necessári
 - **OPCIONAL** — `-e OBWEB_WSS_ORIGIN=https://outbreakweb.com` para substituir a origem WSS padrão.
 - **OPCIONAL** — `-e OBWEB_RUNTIME_DIR=/var/lib/obweb-bridge/runtime` para alterar o diretório de estado em tempo de execução; mantenha-o dentro de `/var/lib/obweb-bridge` para persistir no volume Docker.
 
-O inicializador prepara o login do Outbreak Web, mostra um plano de rede e solicita `sudo` para ativar o encaminhamento temporário. Aguarde **READY**. O assistente de login pode criar um nome de usuário ou importar uma conta existente com o código de transferência; ele exibe a senha do jogo para inserção manual. Mantenha essa tela privada.
+No Docker, os MCs são gerados somente ao criar uma conta nova. Importar uma conta com `OBWEB_REO_CODE` ou reutilizar uma conta salva não gera novos cartões. Os arquivos criados ficam no volume persistente; os logs mostram seus caminhos e os comandos para copiá-los. Com o container em execução, por exemplo:
 
-O cliente e o computador Linux precisam estar na mesma LAN, e o isolamento de clientes Wi-Fi deve estar desativado. Em um cliente PC ou Android, configure o gateway padrão e o DNS do dispositivo com o IP LAN do Linux exibido pela ponte. Em um PS2 real, use as configurações de rede do jogo abaixo.
+```bash
+docker cp CONTAINER_NAME:/var/lib/obweb-bridge/state/outbreak-web-login/memcards/outbreak-file1.ps2 ./outbreak-file1.ps2
+docker cp CONTAINER_NAME:/var/lib/obweb-bridge/state/outbreak-web-login/memcards/outbreak-file2.ps2 ./outbreak-file2.ps2
+```
+
+Substitua `CONTAINER_NAME` pelo nome exibido em `docker ps` e use os caminhos informados nos logs.
+
+Os inicializadores pedem o usuário ou código REO e exibem o usuário, a senha do jogo e o código de transferência REO1; no container, use as variáveis de ambiente. Aguarde **READY** antes de conectar. Mantenha as credenciais privadas.
 
 ### 2. Configure o jogo e a rede
 
-Mesmo usando um emulador, crie uma **nova configuração de rede dentro do jogo** em vez de reutilizar uma antiga e deixe os campos de rede em **Automatic**. Nas configurações Ethernet do próprio emulador, ative Ethernet, escolha **Online / Sockets** e informe manualmente o IP LAN do Linux como DNS primário e secundário. No ARMSX2, essas são as configurações Ethernet do emulador.
+Antes de configurar a rede, selecione o memory card da mesma conta no emulador: `outbreak-file1.ps2` para Outbreak ou `outbreak-file2.ps2` para File #2. Se importou uma conta e optou por não gerar cartões, use seu memory card exportado.
 
-Em um PS2 real, crie uma nova configuração de rede na opção Network Play do jogo e informe:
+Mesmo usando um emulador, crie uma **nova configuração de rede dentro do jogo** em vez de reutilizar uma antiga e deixe os campos de rede em **Automatic**.
 
-- **Endereço IP:** um endereço livre na mesma LAN do computador Linux. Não use o IP do Linux, o IP de outro dispositivo nem um endereço dentro do pool DHCP do roteador.
+#### ARMSX2 no Android e consoles PS2
+
+Ative Ethernet, escolha **Online / Sockets** e informe manualmente o IP LAN do computador que executa a ponte como DNS primário e secundário, (lembre de defini-los como MANUAL e não AUTO). Também é necessario que configure a sua conexão Wi-Fi do Android para ESTÁTICO da seguinte maneira:
+
+- **Endereço IP:** um endereço livre na mesma LAN do computador que executa a ponte. Não use o IP do computador que executa a ponte.
 - **Máscara de sub-rede:** a máscara usada pela sua LAN (normalmente `255.255.255.0` em uma rede `/24`).
-- **Gateway:** o IP LAN do computador Linux exibido pela ponte.
-- **DNS primário (DNS1):** o mesmo IP LAN do Linux.
-- **DNS secundário (DNS2):** use o IP LAN do Linux se a configuração exigir um valor.
+- **Gateway:** o IP LAN do computador que executa a ponte exibido pela ponte.
+- **DNS primário (DNS1):** o mesmo IP LAN do computador que executa a ponte.
+- **DNS secundário (DNS2):** use o IP LAN do computador que executa a ponte se a configuração exigir um valor.
 
-Salve o perfil e selecione-o para Network Play. Essa configuração estática foi confirmada funcionando em um PS2 real.
+Em um PS2 real crie uma nova configuração de rede e defina os endereços manualmente conforme mencionado acima na opção Network Play do jogo. Salve o perfil e selecione-o para Network Play.
 
-Não informe nas configurações de rede do console o endereço DHCP remoto mostrado pela ponte.
+#### PCSX2 no mesmo computador da ponte
+
+Use a interface virtual dedicada criada pelo inicializador, usando o `start-ethernet`. Aguarde **READY** e abra ou reinicie o PCSX2 para atualizar a lista de dispositivos. Em **Settings > Network & HDD**:
+
+- Ative Ethernet e escolha **PCAP Switched** (**PCAP Trocado** em algumas traduções).
+- Selecione **obw-pcsx2** ou a TAP dedicada escolhida no Windows.
+- Desative **Intercept DHCP**. Deixe os modos DNS em **Automático** e desative entradas DNS internas personalizadas.
+- Crie um novo perfil de rede dentro do jogo com todos os campos **Automáticos**.
+
+O DHCP remoto fornece IP do PS2, subrede, gateway e DNS. Nesse modo, deixe esses campos em automático. O inicializador configura a interface virtual; use uma TAP dedicada, sem selecionar sua interface física ou uma TAP de VPN.
+
+Mantenha a ponte aberta enquanto joga. A interface criada por ela é removida ao encerrar; uma TAP Windows preexistente é preservada.
 
 ### 3. Jogue
 
-Use a imagem com patch, inicie o jogo do zero, escolha NETWORK PLAY e informe o nome de usuário e a senha exibidos pelo assistente de login. Quando terminar, pressione Ctrl+C no terminal da ponte e restaure as configurações originais de gateway/DNS do cliente.
+Use a imagem com patch e o memory card da mesma conta, inicie o jogo do zero, escolha NETWORK PLAY e depois **Go Online**, informando a senha exibida pelo assistente. A ponte pode ficar aberta sem jogadores, sem limite de duração ou inatividade. Se o WSS cair, ela tentará reconectar automaticamente; uma partida em andamento pode precisar ser reconectada pelo jogo.
 
-## Como funciona
+Para encerrar a ponte, pressione Ctrl+C. Se usou o modo gateway, restaure o gateway e DNS originais do cliente quando terminar.
 
-A ponte encaminha o tráfego IPv4 da sub-rede LAN do cliente configurada por um namespace Linux isolado, NAT genérico, TAP e a conexão WSS binária. A resposta DHCP remota fornece o endereço, o gateway, o DNS e a concessão do túnel. As consultas DNS são encaminhadas a esse DNS remoto, sem regras específicas por domínio. O transporte não seleciona IPs de jogos, domínios nem portas de aplicação.
-
-No modo Sockets do ARMSX2, o emulador termina a rede do PS2 virtual no Android. Portanto, este programa funciona como gateway IPv4 com NAT, não como uma ponte de camada 2 para o adaptador Ethernet do PS2. Ele não implementa DNAS nem os serviços do jogo; o bypass de DNAS está na imagem com patch.
-
-O gateway não altera a rota padrão do computador Linux. IPv6, VPN, dados móveis, tráfego direto na mesma LAN, renovação da concessão DHCP e rotas DHCP classless não fazem parte do caminho atual. A sessão é encerrada se o WSS desconectar ou antes de expirar 90% da concessão DHCP remota. O acesso comum à Internet pelo cliente pode ficar limitado aos serviços disponíveis pelo WSS.
-
-## Diagnóstico
+## Diagnóstico (Linux)
 
 Com a ponte em execução, use outro terminal:
 
 ```sh
-sudo .venv/bin/python diagnose.py --lan-interface INTERFACE --seconds 45
+sudo .venv/bin/python diagnose.py --lan-interface INTERFACE --pcsx2-ip IP_DO_PS2 --seconds 45
 ```
 
-O diagnóstico informa contagens de tráfego e metadados DNS sem registrar payloads de pacotes, nomes DNS arbitrários, credenciais ou IPs remotos.
+No modo Ethernet local, use o IP do PS2 atribuído pelo DHCP remoto, visível nas configurações de rede do jogo. O diagnóstico monitora apenas `obw-pcsx2` para esse IP e informa contadores da interface e metadados de protocolo sem registrar payloads, endereços MAC, nomes DNS, credenciais ou endereços IP. Para exibir no terminal somente os nomes consultados por DNS nessa captura do PS2, acrescente explicitamente `--show-dns-names`; eles não são salvos. Para um cliente separado na LAN, omita `--pcsx2-ip` e use `--client-ip IP_DO_CLIENTE` para limitar a captura a esse dispositivo.

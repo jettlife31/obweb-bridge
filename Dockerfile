@@ -15,7 +15,9 @@ RUN apt-get update \
 WORKDIR /app
 COPY requirements.txt ./
 RUN python -m pip install --no-cache-dir -r requirements.txt
-COPY gateway.py network.py wire.py dns_proxy.py login_web.py select_interface.py container-entrypoint.sh ./
+COPY gateway.py network.py wire.py dns_proxy.py login_web.py memory_card.py service.py select_interface.py container_interfaces.py container-entrypoint.sh ./
+COPY third_party/ ./third_party/
+COPY assets/ ./assets/
 RUN chmod 0555 /app/container-entrypoint.sh
 
 EXPOSE 53/udp 53/tcp

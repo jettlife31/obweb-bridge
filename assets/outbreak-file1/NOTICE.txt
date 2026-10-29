@@ -1,0 +1,2 @@
+Memory-card icons for Resident Evil Outbreak USA (SLUS-20765), taken from the user-provided save. Game artwork belongs to its respective rights holders.
+Account data is reconstructed by memory_card.py; no personal account template is stored here.
