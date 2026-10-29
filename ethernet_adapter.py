@@ -11,6 +11,58 @@ import subprocess
 import sys
 
 
+def openvpn_install_directories():
+    """Read OpenVPN's installation location, including custom drives."""
+    try:
+        import winreg
+    except ImportError:
+        return []
+    directories = []
+    for hive in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+        for view in (winreg.KEY_WOW64_64KEY, winreg.KEY_WOW64_32KEY):
+            try:
+                with winreg.OpenKey(hive, r'SOFTWARE\OpenVPN', 0, winreg.KEY_READ | view) as key:
+                    for value in ('', 'InstallDir'):
+                        try:
+                            directory, _ = winreg.QueryValueEx(key, value)
+                            if isinstance(directory, str) and directory:
+                                directories.append(directory)
+                        except OSError:
+                            pass
+            except OSError:
+                pass
+    return directories
+
+
+def find_tapctl():
+    executable = shutil.which('tapctl.exe')
+    if executable:
+        return executable
+    roots = openvpn_install_directories()
+    roots.extend(str(Path(os.environ.get(variable, default)) / 'OpenVPN')
+                 for variable, default in (('ProgramFiles', r'C:\Program Files'),
+                                           ('ProgramFiles(x86)', r'C:\Program Files (x86)'),
+                                           ('ProgramW6432', r'C:\Program Files')))
+    for root in dict.fromkeys(roots):
+        candidate = Path(os.path.expandvars(root)) / 'bin' / 'tapctl.exe'
+        if candidate.is_file():
+            return str(candidate)
+    print('tapctl.exe was not found automatically. It is included with OpenVPN / TAP-Windows6.')
+    while True:
+        try:
+            location = input('Enter the path to tapctl.exe or its folder (blank to cancel): ').strip()
+        except (EOFError, OSError):
+            raise RuntimeError('Could not read the tapctl.exe location. Run the launcher in an interactive terminal.') from None
+        if not location:
+            raise RuntimeError('TAP setup cancelled; install TAP-Windows6 and locate tapctl.exe before retrying.')
+        candidate = Path(os.path.expandvars(location.strip('\"').strip("'"))).expanduser()
+        if candidate.is_dir():
+            candidate = candidate / 'tapctl.exe'
+        if candidate.name.lower() == 'tapctl.exe' and candidate.is_file():
+            return str(candidate.resolve())
+        print('tapctl.exe was not found at that location. Enter its full path or the folder containing it.')
+
+
 def marker(occupied):
     # Adapter discovery address only; never used by the PS2 or WSS transport.
     while True:
@@ -97,13 +149,7 @@ class WindowsTap:
             adapters = self.adapters()
             matching = [a for a in adapters if a['Name'] == self.name]
             if not matching:
-                self.tapctl = shutil.which('tapctl.exe')
-                if not self.tapctl:
-                    candidate = Path(os.environ.get('ProgramFiles', r'C:\Program Files')) / 'OpenVPN/bin/tapctl.exe'
-                    if candidate.exists():
-                        self.tapctl = str(candidate)
-                if not self.tapctl:
-                    raise RuntimeError('Install TAP-Windows6 and tapctl (from OpenVPN) plus Npcap. Or pass --adapter with a dedicated existing TAP-Windows adapter.')
+                self.tapctl = find_tapctl()
                 result = subprocess.run([self.tapctl, 'create', '--hwid', 'tap0901', '--name', self.name], capture_output=True)
                 if result.returncode:
                     raise RuntimeError('Could not create the dedicated TAP-Windows6 adapter.')

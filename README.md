@@ -52,7 +52,7 @@ The LAN gateway forwards devices in the selected subnet; setting `OBWEB_CLIENT_I
 
 #### Local PCSX2 — Windows
 
-Install Python 3.10+, Npcap, and the TAP-Windows6 driver with `tapctl.exe` from OpenVPN. Open PowerShell as Administrator and run:
+Install Python 3.10+ and Npcap. Run the OpenVPN Community installer and select the TAP-Windows6 driver component, which includes `tapctl.exe`. Extracting the MSI alone does not install the driver. If the bridge cannot find `tapctl.exe`, it asks for the file or folder location. Open PowerShell as Administrator and run:
 
 ```powershell
 .\start-ethernet.ps1
