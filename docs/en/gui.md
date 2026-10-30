@@ -2,7 +2,7 @@
 
 [Guide index](../../README.md) · [English](../en/gui.md) · [Português (Brasil)](../pt-br/gui.md) · [Español](../es/gui.md)
 
-The same Python window controls both systems. Existing terminal launchers remain available. The container does not use the GUI.
+The GUI is the default for native Windows and Linux. The same Python window controls both systems; terminal launchers remain under [Other ways to run](terminal.md). The container does not use the GUI.
 
 ## 1. Install prerequisites
 
@@ -39,6 +39,12 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start-gui.ps1
 
 The launchers prepare `.venv` and install the Python libraries automatically. Use **Setup** to check dependencies and open their official download pages.
 
+### Permission errors from earlier administrator runs
+
+Run the GUI as a **regular user on both Windows and Linux**: do not use Run as Administrator for the GUI on Windows or sudo for the GUI on Linux. Approve elevation only for the network helper after clicking **Start bridge**.
+
+Account files or memory-card folders created earlier as Administrator/root or under another user can cause **PermissionError** when the GUI later runs as a regular user. The error dialog identifies the affected path. Preserve your REO1 code and saved files, and correct access only for that application folder/file for your current user. Do not delete the entire `.local` directory or change permissions for unrelated folders. See also the [native Windows setup](windows.md).
+
 ## 3. Prepare the account
 
 In **Account & memory cards**, select a saved account, create a new username or paste an existing REO1 code. Click **Prepare account**. The code remains visible while pasting.
@@ -62,4 +68,4 @@ Click **Start bridge** and approve the system prompt. Wait for **Ready** before 
 
 **Stop** and closing the window request the same network cleanup. The window waits for the worker to exit; do not force-close it while cleanup is running. No session or idle shutdown is imposed.
 
-Connection status and counters appear in the activity area. **Copy diagnostic report** copies platform information and activity messages, excluding the account fields. Windows gameplay and elevation still need runtime validation; Linux UI and isolated worker cleanup have been checked. This is a development branch, not a replacement for the existing launchers.
+Connection status and counters appear in the activity area. **Copy diagnostic report** copies platform information and activity messages, excluding the account fields. Windows gameplay and elevation still need runtime validation; Linux UI and isolated worker cleanup have been checked.

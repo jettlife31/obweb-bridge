@@ -461,7 +461,7 @@ class BridgeApp:
 
     def open_guide(self):
         page = ('windows' if sys.platform == 'win32' else 'linux') if self.mode.get() == 'ethernet' else 'lan'
-        webbrowser.open(f'https://github.com/zenaror/obweb-bridge/blob/feature/shared-desktop-gui/docs/en/{page}.md')
+        webbrowser.open(f'https://github.com/zenaror/obweb-bridge/blob/main/docs/en/{page}.md')
 
     def close(self):
         self.closing = True

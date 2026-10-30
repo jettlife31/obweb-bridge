@@ -6,20 +6,22 @@ Before starting, complete the [prerequisites](prerequisites.md). Run commands fr
 
 ## 1. Start a LAN gateway
 
-LAN gateway mode is available on Linux and through WSL2 on Windows. Install Python 3.10+, `iproute2`, `nftables`, and TUN/TAP support. On Debian or Ubuntu:
+The GUI LAN gateway host requires Linux. Install the dependencies, then run the GUI as your regular user:
 
 ```sh
-sudo apt install python3-venv iproute2 nftables procps
-./start-local.sh
+sudo apt install python3-venv python3-tk iproute2 nftables procps policykit-1
+./start-gui.sh
 ```
 
-Run as a regular user. Select the interface connected to the client LAN, such as `enp3s0` or `wlp2s0`; the launcher shows each IPv4 address and requests `sudo` to configure temporary networking. The client must share the LAN, with Wi-Fi client isolation disabled. Use the LAN IP of the computer running the bridge as the client gateway and DNS. For a physical PS2, set these fields in the game as described in the client guide.
+In **Connection**, select **Another device on the LAN**, choose the interface connected to the clients and prepare the account. Click **Start bridge**, approve network authorization and wait for **Ready**. The window shows the client gateway/DNS IP. Do not change the bridge computer's own gateway or DNS. Clients must share its LAN, with Wi-Fi client isolation disabled.
 
 ## 2. Continue
 
 Continue with [Android / ARMSX2](android.md) or [physical PS2](ps2.md). For another computer over LAN, set its network gateway and DNS to the bridge computer and select Sockets in the emulator.
 
 For counters and protocol metadata on a Linux bridge, see [Diagnostics](diagnostics.md).
+
+For the older terminal launchers, see [Other ways to run](terminal.md).
 
 ---
 

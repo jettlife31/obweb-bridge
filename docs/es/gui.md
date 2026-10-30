@@ -2,7 +2,7 @@
 
 [Índice de guías](../../README.ES.md) · [English](../en/gui.md) · [Português (Brasil)](../pt-br/gui.md) · [Español](../es/gui.md)
 
-La misma ventana Python controla ambos sistemas. Los iniciadores de terminal siguen disponibles. El contenedor no utiliza la GUI.
+La GUI es la opción predeterminada para Windows y Linux nativos. La misma ventana Python controla ambos sistemas; los iniciadores de terminal siguen en [Otras formas de ejecutar](terminal.md). El contenedor no utiliza la GUI.
 
 ## 1. Instala los requisitos
 
@@ -39,6 +39,12 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start-gui.ps1
 
 Los iniciadores preparan `.venv` e instalan las bibliotecas Python automáticamente. En **Setup**, comprueba las dependencias y abre las páginas oficiales de descarga.
 
+### Errores de permisos después de ejecutar como administrador
+
+Ejecuta la GUI como **usuario normal tanto en Windows como en Linux**: no uses Ejecutar como Administrador para la GUI en Windows ni sudo para la GUI en Linux. Acepta la elevación solo para el auxiliar de red al pulsar **Start bridge**.
+
+Los archivos de cuenta o carpetas de tarjetas creados antes como Administrador/root o por otro usuario pueden provocar **PermissionError** al ejecutar la GUI como usuario normal. El mensaje de error identifica la ruta afectada. Conserva el código REO1 y los archivos guardados, y corrige el acceso únicamente a la carpeta/archivo de esta aplicación para tu usuario actual. No borres todo el directorio `.local` ni cambies los permisos de carpetas no relacionadas. Consulta también la [configuración nativa de Windows](windows.md).
+
 ## 3. Prepara la cuenta
 
 En **Account & memory cards**, selecciona una cuenta guardada, crea un usuario nuevo o pega un código REO1 existente. Pulsa **Prepare account**. El código permanece visible al pegarlo.
@@ -62,4 +68,4 @@ Pulsa **Start bridge** y acepta la solicitud del sistema. Espera **Ready** antes
 
 **Stop** y cerrar la ventana solicitan la misma limpieza de red. La ventana espera a que termine el auxiliar; no fuerces el cierre durante la limpieza. No hay apagado por duración o inactividad.
 
-El estado de conexión y los contadores aparecen en el área de actividad. **Copy diagnostic report** copia información de la plataforma y mensajes de actividad, excluyendo los campos de la cuenta. Las partidas y la elevación en Windows aún necesitan validación real; se comprobaron la ventana Linux y la limpieza del auxiliar en un entorno aislado. Esta es una branch de desarrollo y no sustituye los iniciadores existentes.
+El estado de conexión y los contadores aparecen en el área de actividad. **Copy diagnostic report** copia información de la plataforma y mensajes de actividad, excluyendo los campos de la cuenta. Las partidas y la elevación en Windows aún necesitan validación real; se comprobaron la ventana Linux y la limpieza del auxiliar en un entorno aislado.

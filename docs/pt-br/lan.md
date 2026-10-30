@@ -6,20 +6,22 @@ Antes de começar, conclua os [pré-requisitos](prerequisites.md). Execute os co
 
 ## 1. Inicie um gateway da LAN
 
-O modo gateway está disponível no Linux e via WSL2 no Windows. Instale Python 3.10+, `iproute2`, `nftables` e suporte a TUN/TAP. No Debian ou Ubuntu:
+Hospedar o gateway da LAN pela GUI exige Linux. Instale as dependências e execute a GUI como usuário comum:
 
 ```sh
-sudo apt install python3-venv iproute2 nftables procps
-./start-local.sh
+sudo apt install python3-venv python3-tk iproute2 nftables procps policykit-1
+./start-gui.sh
 ```
 
-Execute como usuário comum. Escolha a interface conectada à LAN do cliente, como `enp3s0` ou `wlp2s0`; o inicializador mostra o IPv4 de cada uma e solicita `sudo` para configurar a rede temporária. O cliente deve estar na mesma LAN, com isolamento de clientes Wi-Fi desativado. Use o IP LAN do computador que executa a ponte como gateway e DNS do cliente. No PS2 real, configure esses campos dentro do jogo, conforme o guia do cliente.
+Em **Connection**, selecione **Another device on the LAN**, escolha a interface conectada aos clientes e prepare a conta. Clique em **Start bridge**, aprove a autorização da rede e aguarde **Ready**. A janela mostra o IP do gateway/DNS dos clientes. Não altere o gateway ou DNS do próprio computador da ponte. Os clientes devem estar na mesma LAN, com isolamento de clientes Wi-Fi desativado.
 
 ## 2. Continuar
 
 Continue em [Android / ARMSX2](android.md) ou [PS2 real](ps2.md). Para outro computador pela LAN, defina o gateway e DNS da rede dele como o IP do computador da ponte e selecione Sockets no emulador.
 
 Para contadores e metadados de protocolo na ponte Linux, consulte [Diagnóstico](diagnostics.md).
+
+Para os inicializadores antigos de terminal, consulte [Outras formas de executar](terminal.md).
 
 ---
 

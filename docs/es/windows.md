@@ -12,21 +12,27 @@ Cierra PCSX2 antes de instalar los requisitos:
 2. Descarga e instala [Npcap desde su sitio oficial](https://npcap.com/#download). Es necesario para que la interfaz `obw-pcsx2` aparezca en la lista PCAP de PCSX2.
 3. Descarga [OpenVPN Community Edition](https://openvpn.net/community/) (no OpenVPN Connect), abre el instalador y haz clic en **Install Now**.
 
-Después de instalar todos los requisitos, abre PowerShell como Administrador y ejecuta:
+Después de instalar los requisitos, abre una ventana normal de PowerShell (sin Ejecutar como Administrador) y ejecuta:
 
 ```powershell
-.\start-ethernet.ps1
+.\start-gui.ps1
 ```
 
-Si PowerShell bloquea el script por la directiva de ejecución, usa esta alternativa desde la misma terminal como Administrador. Solo se aplica a este proceso y no cambia permanentemente la directiva del sistema:
+Si la directiva de ejecución bloquea el iniciador, usa esta alternativa en la misma terminal de usuario normal. Solo cambia la directiva para ese proceso:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start-ethernet.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start-gui.ps1
 ```
 
-Espera **READY** y después abre PCSX2.
+Elige **PCSX2 on this computer**, prepara la cuenta y pulsa **Start bridge**. Acepta la autorización independiente del auxiliar de red, espera **Ready** y abre PCSX2.
 
-Para usar una TAP-Windows6 dedicada existente, ejecuta `.\start-ethernet.ps1 -Adapter "TU INTERFAZ TAP"`. Las partidas en Windows todavía necesitan validación.
+Para reutilizar una TAP-Windows6 dedicada existente, introduce su nombre en la configuración de conexión de la GUI.
+
+### Permisos
+
+Ejecuta la GUI como **usuario normal tanto en Windows como en Linux**: no uses Ejecutar como Administrador para la GUI en Windows ni sudo para la GUI en Linux. Acepta la elevación solo para el auxiliar de red al pulsar **Start bridge**.
+
+Los archivos de cuenta o carpetas de tarjetas creados antes como Administrador/root o por otro usuario pueden provocar **PermissionError** al ejecutar la GUI como usuario normal. El mensaje de error identifica la ruta afectada. Conserva el código REO1 y los archivos guardados, y corrige el acceso únicamente a la carpeta/archivo de esta aplicación para tu usuario actual. No borres todo el directorio `.local` ni cambies los permisos de carpetas no relacionadas.
 
 ## 2. Selecciona la tarjeta de memoria
 
@@ -49,7 +55,7 @@ Mantén el bridge abierto mientras juegas. Una interfaz creada por el iniciador 
 
 Usa la imagen parcheada y la tarjeta de la misma cuenta, inicia el juego desde cero, elige NETWORK PLAY y después **Go Online**, e introduce la contraseña del asistente. El bridge puede permanecer abierto sin jugadores, sin límite de duración o inactividad. Si WSS se desconecta, reintenta automáticamente; una partida activa puede necesitar reconexión dentro del juego.
 
-Pulsa Ctrl+C para cerrar el bridge.
+Pulsa **Stop** o cierra la ventana para detener el bridge.
 
 ## Si la TAP no aparece en PCAP
 
@@ -62,6 +68,8 @@ Get-NetAdapterBinding -Name "obw-pcsx2" -AllBindings -IncludeHidden | Format-Tab
 ```
 
 Si el inicio falla, copia la línea que identifica el comando de Windows y los códigos de error. No incluyas las credenciales de la cuenta en las capturas.
+
+Para los iniciadores anteriores de terminal, consulta [Otras formas de ejecutar](terminal.md).
 
 ---
 
