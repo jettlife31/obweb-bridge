@@ -12,8 +12,10 @@ Complete the [game patch and account prerequisites](prerequisites.md).
 - **Linux:** install Tkinter and a desktop authorization agent in addition to the dependencies for your bridge mode. On Debian/Ubuntu:
 
 ```sh
-sudo apt install python3-venv python3-tk iproute2 nftables procps policykit-1
+sudo apt install python3-venv python3-tk iproute2 nftables procps pkexec polkitd
 ```
+
+For the Windows GUI with WSL, use the [WSL dependencies in the LAN guide](lan.md#windows-via-wsl-2-experimental). Tkinter and polkit are not needed inside WSL for that workflow; the GUI runs on Windows.
 
 ## 2. Open the application
 

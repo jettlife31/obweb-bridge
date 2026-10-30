@@ -9,7 +9,7 @@ Antes de começar, conclua os [pré-requisitos](prerequisites.md). Execute os co
 O gateway LAN da GUI usa o backend Linux. Linux nativo é suportado; no Windows, a GUI pode iniciá-lo pela **integração experimental com WSL 2**, descrita abaixo. No Linux nativo, instale as dependências e execute a GUI como usuário comum:
 
 ```sh
-sudo apt install python3-venv python3-tk iproute2 nftables procps policykit-1
+sudo apt install python3-venv python3-tk iproute2 nftables procps pkexec polkitd
 ./start-gui.sh
 ```
 

@@ -12,8 +12,10 @@ Conclua os [pré-requisitos de patch do jogo e conta](prerequisites.md).
 - **Linux:** instale Tkinter e um agente de autorização do desktop, além das dependências do modo da ponte. No Debian/Ubuntu:
 
 ```sh
-sudo apt install python3-venv python3-tk iproute2 nftables procps policykit-1
+sudo apt install python3-venv python3-tk iproute2 nftables procps pkexec polkitd
 ```
+
+Para a GUI do Windows com WSL, use as [dependências WSL do guia LAN](lan.md#windows-via-wsl-2-experimental). Nesse fluxo, Tkinter e polkit não são necessários dentro do WSL; a GUI roda no Windows.
 
 ## 2. Abra o aplicativo
 

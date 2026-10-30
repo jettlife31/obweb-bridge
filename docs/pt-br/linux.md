@@ -9,7 +9,7 @@ Antes de começar, conclua os [pré-requisitos](prerequisites.md). Execute os co
 Instale Python 3.10+, Tkinter, `iproute2`, suporte a TUN/TAP e um agente de autorização do desktop. No Debian/Ubuntu:
 
 ```sh
-sudo apt install python3-venv python3-tk iproute2 policykit-1
+sudo apt install python3-venv python3-tk iproute2 pkexec polkitd
 ./start-gui.sh
 ```
 

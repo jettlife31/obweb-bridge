@@ -339,7 +339,7 @@ class BridgeApp:
                 for name in ('ip', 'nft', 'sysctl', 'pkexec'):
                     lines.append(f'{name}: ' + ('installed' if shutil.which(name) else 'missing'))
                 lines.append('TUN/TAP: ' + ('available' if Path('/dev/net/tun').exists() else 'missing /dev/net/tun'))
-                lines.append('On Debian/Ubuntu: sudo apt install python3-venv python3-tk iproute2 nftables procps policykit-1')
+                lines.append('On Debian/Ubuntu: sudo apt install python3-venv python3-tk iproute2 nftables procps pkexec polkitd')
             self.events.put({'type': 'setup', 'text': '\n'.join(lines)})
         threading.Thread(target=work, daemon=True).start()
 
