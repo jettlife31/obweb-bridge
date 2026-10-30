@@ -111,16 +111,28 @@ class BridgeController:
             listener.listen(4)
             listener.settimeout(.3)
             token = secrets.token_hex(32)
-            self.emit({'type': 'status', 'message': 'Waiting for administrator approval…'})
+            wsl_distro = config.pop('wsl_distro', None)
+            self.emit({'type': 'status', 'message': 'Starting WSL gateway…' if wsl_distro else 'Waiting for administrator approval…'})
             if self.cancelled.is_set():
                 return
-            self._launch(listener.getsockname()[1], token)
+            if wsl_distro:
+                from wsl_support import worker_command
+                if sys.platform != 'win32' or config.get('mode') != 'gateway':
+                    raise RuntimeError('WSL is available only for the Windows LAN gateway.')
+                command = worker_command(wsl_distro, listener.getsockname()[1], token)
+                if self.cancelled.is_set():
+                    return
+                self.process = subprocess.Popen(command, cwd=ROOT, stdin=subprocess.DEVNULL,
+                                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                                creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+            else:
+                self._launch(listener.getsockname()[1], token)
             deadline = time.monotonic() + 120  # Startup authorization only, never a session limit.
             while not self.cancelled.is_set():
                 if self.process and self.process.poll() is not None:
-                    raise RuntimeError('Network worker exited before startup. Check the administrator authorization and Python dependencies.')
+                    raise RuntimeError('WSL worker exited before startup. Check the WSL distribution, mirrored networking and Linux dependencies.' if wsl_distro else 'Network worker exited before startup. Check the administrator authorization and Python dependencies.')
                 if time.monotonic() >= deadline:
-                    raise RuntimeError('Administrator approval timed out. Start again when ready.')
+                    raise RuntimeError('WSL worker could not connect to the GUI over localhost. Check mirrored networking and the Hyper-V firewall.' if wsl_distro else 'Administrator approval timed out. Start again when ready.')
                 try:
                     connection, _ = listener.accept()
                 except socket.timeout:

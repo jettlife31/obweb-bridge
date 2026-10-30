@@ -58,7 +58,7 @@ Con **Saved account** seleccionado, pulsa **Create memory cards** para generar l
 En **Connection**, elige:
 
 - **PCSX2 on this computer:** disponible en Windows y Linux. Consulta [Windows](windows.md) o [Linux](linux.md) para configurar el emulador: **PCAP Switched**, `obw-pcsx2`, interceptación DHCP desactivada, DNS automático y un perfil automático nuevo dentro del juego.
-- **Another device on the LAN:** alojar el gateway actualmente requiere Linux. Selecciona la interfaz conectada a los clientes; la ventana muestra la IP del gateway/DNS tras iniciar. Configura [Android](android.md), [PS2 real](ps2.md) u otro cliente LAN según la [guía del gateway](lan.md).
+- **Another device on the LAN:** usa el gateway Linux, con integración experimental mediante WSL 2 en Windows. Sigue la [guía del gateway](lan.md) para detección, preparación de WSL y limitaciones de red. Linux nativo sigue siendo el host LAN validado.
 
 En Windows, el nombre de una TAP dedicada existente es opcional. Si no se encuentra `tapctl.exe`, una ventana permite localizar el archivo.
 

@@ -9,3 +9,5 @@ README.md
 diagnose.py
 
 generated-memcards/
+
+.venv-wsl/
