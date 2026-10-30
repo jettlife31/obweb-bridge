@@ -18,6 +18,12 @@ Depois de instalar todos os pré-requisitos, abra o PowerShell como Administrado
 .\start-ethernet.ps1
 ```
 
+Se o PowerShell bloquear o script pela política de execução, use esta alternativa no mesmo terminal como Administrador. Ela vale apenas para esse processo e não altera a política do sistema permanentemente:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start-ethernet.ps1
+```
+
 Aguarde **READY** e depois abra o PCSX2.
 
 Para usar uma TAP-Windows6 dedicada existente, execute `.\start-ethernet.ps1 -Adapter "SUA INTERFACE TAP"`. Partidas no Windows ainda precisam de validação.

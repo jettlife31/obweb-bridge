@@ -18,6 +18,12 @@ After installing all prerequisites, open PowerShell as Administrator and run:
 .\start-ethernet.ps1
 ```
 
+If PowerShell blocks the script because of its execution policy, run this alternative from the same Administrator terminal. It applies to this process only and does not permanently change the system policy:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start-ethernet.ps1
+```
+
 Wait for **READY**, then open PCSX2.
 
 To use a dedicated existing TAP-Windows6 adapter, run `.\start-ethernet.ps1 -Adapter "YOUR TAP ADAPTER"`. Windows gameplay still requires validation.
