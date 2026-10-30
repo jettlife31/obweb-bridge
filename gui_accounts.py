@@ -4,6 +4,18 @@ import secrets
 import login_web as login
 
 
+def create_saved_cards(name):
+    """Generate cards for an existing local identity without re-registering it."""
+    path = login.state_path()
+    state = login.load_state(path)
+    if not login.NAME.fullmatch(name) or name not in state['identities']:
+        raise ValueError('Select a saved account before creating memory cards.')
+    cards, _ = login.prepare_memory_card(name)
+    state.setdefault('memory_cards', {})[name] = True
+    login.save_state(path, state)
+    return {'name': name, 'cards': [str(card) for card in cards]}
+
+
 def prepare_account(mode, value, create_cards=None):
     path = login.state_path()
     state = login.load_state(path)

@@ -8,6 +8,7 @@ from pathlib import Path
 import platform
 import queue
 import shutil
+import subprocess
 import sys
 import threading
 import tkinter as tk
@@ -17,6 +18,23 @@ import webbrowser
 import gui_accounts
 from gui_backend import BridgeController, ROOT
 import login_web as login
+
+
+def open_directory(folder):
+    """Use the desktop folder handler instead of the web browser."""
+    folder = str(Path(folder).resolve())
+    if sys.platform == 'win32':
+        os.startfile(folder)
+        return
+    if shutil.which('gio'):
+        command = ['gio', 'open', folder]
+    elif shutil.which('xdg-open'):
+        command = ['xdg-open', folder]
+    else:
+        raise RuntimeError('Install gio or xdg-utils to open folders from the application.')
+    result = subprocess.run(command, capture_output=True)
+    if result.returncode:
+        raise RuntimeError('Could not open the folder with the system file manager.')
 
 
 class BridgeApp:
@@ -132,8 +150,11 @@ class BridgeApp:
         self.saved_box = ttk.Combobox(tab, textvariable=self.account_value, state='readonly')
         self.account_entry = ttk.Entry(tab, textvariable=self.account_value)
         self.generate_box = ttk.Checkbutton(tab, text='Generate memory cards when importing this account', variable=self.generate)
-        self.prepare_button = ttk.Button(tab, text='Prepare account', command=self.prepare_account)
-        self.prepare_button.pack(anchor='w', pady=10)
+        actions = ttk.Frame(tab)
+        actions.pack(anchor='w', pady=10)
+        self.prepare_button = ttk.Button(actions, text='Prepare account', command=self.prepare_account)
+        self.prepare_button.pack(side='left')
+        self.cards_button = ttk.Button(actions, text='Create memory cards', command=self.create_saved_cards)
         ttk.Label(tab, text='These credentials are private. They are excluded from the diagnostic report.').pack(anchor='w')
         self.credential_fields = {}
         for title, key in [('Username', 'name'), ('Game password', 'password'), ('REO1 transfer code', 'code')]:
@@ -183,11 +204,13 @@ class BridgeApp:
         self.saved_box.pack_forget()
         self.account_entry.pack_forget()
         self.generate_box.pack_forget()
+        self.cards_button.pack_forget()
         mode = self.account_mode.get()
         self.input_label.configure(text='Complete REO1 transfer code:' if mode == 'import' else 'Username:')
         widget = self.saved_box if mode == 'saved' else self.account_entry
         widget.pack(after=self.input_label, fill='x', pady=4)
         if mode == 'saved':
+            self.cards_button.pack(side='left', padx=(8, 0))
             values = self.saved_box.cget('values')
             if self.account_value.get() not in values:
                 self.account_value.set(values[0] if values else '')
@@ -231,6 +254,22 @@ class BridgeApp:
             except Exception as error:
                 detail = str(error) if type(error) is ValueError else f'Account setup failed ({type(error).__name__}). Retry or import your existing REO1 code.'
                 self.events.put({'type': 'account_error', 'message': detail})
+        threading.Thread(target=work, daemon=True).start()
+
+    def create_saved_cards(self):
+        if self.account_busy or self.controller.active or self.account_mode.get() != 'saved':
+            return
+        name = self.account_value.get()
+        self.account_busy = True
+        self._account_controls(False)
+        self.status.set('Creating memory cards…')
+        def work():
+            try:
+                result = gui_accounts.create_saved_cards(name)
+                self.events.put({'type': 'cards', **result})
+            except Exception as error:
+                detail = str(error) if type(error) is ValueError else f'Memory-card generation failed ({type(error).__name__}). Existing cards were preserved.'
+                self.events.put({'type': 'cards_error', 'message': detail})
         threading.Thread(target=work, daemon=True).start()
 
     def refresh_interfaces(self):
@@ -299,7 +338,7 @@ class BridgeApp:
 
     def _account_controls(self, enabled):
         state = 'normal' if enabled else 'disabled'
-        for widget in self.account_radios + [self.account_entry, self.generate_box, self.prepare_button]:
+        for widget in self.account_radios + [self.account_entry, self.generate_box, self.prepare_button, self.cards_button]:
             widget.configure(state=state)
         self.saved_box.configure(state='readonly' if enabled else 'disabled')
 
@@ -360,8 +399,23 @@ class BridgeApp:
                 self.interface_box.configure(values=list(self.interface_options))
                 if self.interface.get() not in self.interface_options:
                     self.interface.set(next(iter(self.interface_options), ''))
+            elif kind in ('cards', 'cards_error'):
+                self.account_busy = False
+                self._account_controls(True)
+                if kind == 'cards':
+                    if self.identity is not None and self.identity['name'] == event['name']:
+                        self.identity['cards'] = event['cards']
+                    self.card_text.set('\n'.join('Memory card: ' + path for path in event['cards']))
+                    self.status.set('Memory cards ready')
+                else:
+                    self.status.set('Memory-card generation failed')
+                    if not self.closing:
+                        messagebox.showerror('Memory cards', event['message'], parent=self.root)
             elif kind == 'setup':
                 self.setup_text.set(event['text'])
+            elif kind == 'folder_error':
+                if not self.closing:
+                    messagebox.showerror('Memory-card folder', 'Could not open the system file manager. Open generated-memcards in the application folder manually.', parent=self.root)
             elif kind == 'prompt':
                 path = '' if self.closing else filedialog.askopenfilename(parent=self.root, title='Locate OpenVPN tapctl.exe', filetypes=[('tapctl.exe', 'tapctl.exe')])
                 self.controller.send({'type': 'input', 'value': path})
@@ -397,7 +451,12 @@ class BridgeApp:
         if not folder.is_dir():
             messagebox.showinfo('Memory cards', 'No generated memory-card folder exists yet.', parent=self.root)
             return
-        webbrowser.open(folder.resolve().as_uri())
+        def work():
+            try:
+                open_directory(folder)
+            except (OSError, RuntimeError):
+                self.events.put({'type': 'folder_error'})
+        threading.Thread(target=work, daemon=True).start()
 
     def open_guide(self):
         page = ('windows' if sys.platform == 'win32' else 'linux') if self.mode.get() == 'ethernet' else 'lan'

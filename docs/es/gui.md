@@ -45,6 +45,8 @@ En **Account & memory cards**, selecciona una cuenta guardada, crea un usuario n
 
 Las cuentas nuevas generan las dos tarjetas automáticamente. Al importar, marca **Generate memory cards when importing this account** solo si lo necesitas. El progreso existente se conserva según las [reglas de la cuenta](prerequisites.md). La ventana muestra usuario, contraseña del juego, código REO1 y rutas de las tarjetas, con botones para copiar. Mantén estos datos privados.
 
+Con **Saved account** seleccionado, pulsa **Create memory cards** para generar las tarjetas de esa cuenta sin importarla otra vez. Funciona sin conexión y conserva las tarjetas y el progreso existentes. **Open memory-card folder** abre el gestor de archivos del sistema.
+
 ## 4. Conecta
 
 En **Connection**, elige:

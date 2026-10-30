@@ -45,6 +45,8 @@ In **Account & memory cards**, select a saved account, create a new username or 
 
 New accounts generate the two memory cards automatically. On import, select **Generate memory cards when importing this account** only if needed. Existing progress is preserved according to the [account rules](prerequisites.md). The window shows the username, game password, REO1 code and card paths, with copy buttons. Keep these details private.
 
+With **Saved account** selected, click **Create memory cards** to generate cards for that account without importing it again. This works offline and preserves existing cards and progress. **Open memory-card folder** opens the system file manager.
+
 ## 4. Connect
 
 In **Connection**, choose:
