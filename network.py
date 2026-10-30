@@ -48,42 +48,6 @@ def nscommand(args, **kwargs):
     return command(['ip', 'netns', 'exec', NS, *args], **kwargs)
 
 
-def routing_table(value):
-    return {'local': '255', 'main': '254', 'default': '253'}.get(str(value), str(value))
-
-
-def client_rule_priority(rules, routes):
-    """Keep local delivery first, without colliding with existing RPDB entries.
-
-    WSL mirrored networking installs several local/loopback lookups at 0..2.
-    Earlier foreign policies must not capture nonlocal client traffic before
-    our terminal tunnel table; refuse such topologies instead of bypassing them.
-    """
-    occupied = {int(rule['priority']) for rule in rules}
-    local = [int(rule['priority']) for rule in rules if routing_table(rule.get('table')) == '255']
-    if not local:
-        raise RuntimeError('No local-delivery routing policy found; review routing before starting')
-    priority = max(1, max(local) + 1)
-    while priority in occupied:
-        priority += 1
-    main = [int(rule['priority']) for rule in rules if routing_table(rule.get('table')) == '254']
-    if priority > 32765 or (main and priority >= min(main)):
-        raise RuntimeError('No free client routing priority before the main table; review routing before starting')
-    for rule in rules:
-        if int(rule['priority']) >= priority or routing_table(rule.get('table')) == '255':
-            continue
-        if 'table' not in rule or 'goto' in rule or rule.get('action', 'to_tbl') not in ('to_tbl', 'lookup', 'unicast'):
-            raise RuntimeError('An earlier routing policy has an unsupported action; review routing before starting')
-        for route in routes:
-            if routing_table(route.get('table', 'main')) != routing_table(rule['table']):
-                continue
-            destination = route.get('dst', 'default')
-            if destination != 'default' and ipaddress.ip_network(destination, strict=False).is_loopback:
-                continue
-            raise RuntimeError('An earlier routing policy could intercept client traffic; review routing before starting')
-    return priority
-
-
 def inventory(lan, client_ip=None, lan_ip=None, transit_network=None, route_table=None):
     for executable in ['ip', 'nft', 'sysctl']:
         if not shutil.which(executable):
@@ -128,7 +92,8 @@ def inventory(lan, client_ip=None, lan_ip=None, transit_network=None, route_tabl
             if not any(transit.overlaps(n) for n in networks): break
         else: raise RuntimeError('Could not find an unused transit network')
     rules = json.loads(command(['ip', '-j', '-4', 'rule', 'show']).stdout)
-    priority = client_rule_priority(rules, routes)
+    if any(r.get('priority') == 1 for r in rules):
+        raise RuntimeError('A priority-1 policy already exists; review routing before starting')
     tables = {str(r.get('table', 'main')) for r in [*routes, *rules]}
     if route_table is not None:
         if not 10000 <= route_table <= 59999 or str(route_table) in tables:
@@ -140,7 +105,7 @@ def inventory(lan, client_ip=None, lan_ip=None, transit_network=None, route_tabl
     return {'lan': lan, 'linux_ip': address, 'client_ip': client_ip, 'client_network': client_ip + '/32' if client_ip else str(subnet),
             'uplink': default['dev'], 'router': default['gateway'], 'prefix': candidates[0]['prefixlen'],
             'transit': str(transit), 'host_link': str(transit[1]), 'ns_link': str(transit[2]),
-            'route_table': table, 'rule_priority': priority}
+            'route_table': table}
 
 
 @contextmanager
@@ -352,12 +317,6 @@ class Network:
         nscommand(['ip', 'link', 'set', TAP, 'down'])
 
     def activate(self, lease):
-        # A plan may precede activation by a login prompt or WSS reconnect.
-        # Recheck host policy before installing the client-only rule.
-        rules = json.loads(command(['ip', '-j', '-4', 'rule', 'show']).stdout)
-        routes = json.loads(command(['ip', '-j', '-4', 'route', 'show', 'table', 'all']).stdout)
-        if client_rule_priority(rules, routes) != self.c['rule_priority']:
-            raise RuntimeError('Routing policies changed since the plan; restart the bridge to refresh it')
         self.configure_tunnel(lease)
         command(['nft', '-c', '-f', '-'], text=host_rules(self.c))
         command(['nft', '-f', '-'], text=host_rules(self.c))
@@ -368,7 +327,7 @@ class Network:
                  ['ip', 'route', 'delete', 'unreachable', 'default', 'metric', '32767', 'table', table])
         self.run(['ip', 'route', 'add', 'default', 'via', self.c['ns_link'], 'dev', VETH, 'onlink', 'table', table],
                  ['ip', 'route', 'delete', 'default', 'via', self.c['ns_link'], 'dev', VETH, 'table', table])
-        rule = ['priority', str(self.c['rule_priority']), 'from', self.c['client_network'], 'iif', self.c['lan'], 'table', table]
+        rule = ['priority', '1', 'from', self.c['client_network'], 'iif', self.c['lan'], 'table', table]
         self.run(['ip', 'rule', 'add', *rule], ['ip', 'rule', 'delete', *rule])
         for key, value in [(f"net.ipv4.conf.{self.c['lan']}.forwarding", '1'),
                            (f'net.ipv4.conf.{VETH}.forwarding', '1'),

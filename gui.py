@@ -44,8 +44,6 @@ class BridgeApp:
         self.controller = BridgeController(self.events.put)
         self.identity = None
         self.account_busy = False
-        self.wsl_busy = False
-        self.wsl_distro = tk.StringVar()
         self.closing = False
         self.history = collections.deque(maxlen=500)
         self.interface_options = {}
@@ -117,18 +115,10 @@ class BridgeApp:
         self.ethernet_radio.pack(anchor='w', pady=(8, 3))
         self.gateway_radio = ttk.Radiobutton(tab, text='Another device on the LAN (Android, PS2 or another PC)', value='gateway', variable=self.mode, command=self._mode_changed)
         self.gateway_radio.pack(anchor='w')
-        if sys.platform == 'win32':
-            ttk.Label(tab, text='LAN gateway via WSL 2 is experimental and requires mirrored networking.').pack(anchor='w', pady=5)
+        if sys.platform != 'linux':
+            self.gateway_radio.configure(state='disabled')
+            ttk.Label(tab, text='LAN gateway hosting currently requires Linux. Local PCSX2 works on Windows and Linux.').pack(anchor='w', pady=5)
         self.lan_frame = ttk.Frame(tab)
-        if sys.platform == 'win32':
-            ttk.Label(self.lan_frame, text='WSL distribution:').pack(anchor='w')
-            row = ttk.Frame(self.lan_frame)
-            row.pack(fill='x', pady=4)
-            self.wsl_box = ttk.Combobox(row, textvariable=self.wsl_distro, state='readonly')
-            self.wsl_box.pack(side='left', fill='x', expand=True)
-            self.wsl_box.bind('<<ComboboxSelected>>', lambda _: self.refresh_interfaces())
-            self.wsl_prepare = ttk.Button(row, text='Prepare WSL', command=lambda: self.refresh_interfaces(prepare=True))
-            self.wsl_prepare.pack(side='left', padx=(8, 0))
         ttk.Label(self.lan_frame, text='Client LAN interface:').pack(anchor='w')
         line = ttk.Frame(self.lan_frame)
         line.pack(fill='x', pady=4)
@@ -283,34 +273,7 @@ class BridgeApp:
                 self.events.put({'type': 'cards_error', 'message': detail})
         threading.Thread(target=work, daemon=True).start()
 
-    def refresh_interfaces(self, prepare=False):
-        if sys.platform == 'win32':
-            if self.wsl_busy or self.controller.active:
-                return
-            self.wsl_busy = True
-            self.start_button.configure(state='disabled')
-            self.interface_options = {}
-            self.interface_box.configure(values=[])
-            self.interface.set('')
-            self.wsl_box.configure(state='disabled')
-            self.wsl_prepare.configure(state='disabled')
-            self.refresh_button.configure(state='disabled')
-            selected = self.wsl_distro.get()
-            self.status.set('Preparing WSL…' if prepare else 'Checking WSL…')
-            def check():
-                try:
-                    from wsl_support import distributions, probe
-                    names = distributions()
-                    distro = selected if selected in names else names[0]
-                    self.events.put({'type': 'wsl_distributions', 'names': names, 'selected': distro})
-                    result = probe(distro, prepare=prepare)
-                    self.events.put({'type': 'interfaces', 'choices': result['choices']})
-                    self.events.put({'type': 'wsl_done', 'message': 'WSL setup checked. LAN forwarding still needs validation on this Windows computer.'})
-                except Exception as error:
-                    detail = str(error) if isinstance(error, RuntimeError) else f'WSL check failed ({type(error).__name__}). See the LAN guide.'
-                    self.events.put({'type': 'wsl_done', 'message': detail})
-            threading.Thread(target=check, daemon=True).start()
-            return
+    def refresh_interfaces(self):
         def work():
             try:
                 from container_interfaces import interfaces
@@ -329,22 +292,17 @@ class BridgeApp:
                 lines.append('Npcap: ' + ('installed' if (system / 'Npcap/wpcap.dll').is_file() else 'not found — install Npcap separately from the official link below'))
                 from ethernet_adapter import locate_tapctl
                 lines.append('OpenVPN tapctl: ' + ('found' if locate_tapctl() else 'not found automatically — install Community or locate tapctl.exe when asked'))
-                from wsl_support import distributions
-                try:
-                    lines.append('WSL distributions: ' + ', '.join(distributions()))
-                except RuntimeError as error:
-                    lines.append(str(error))
-                lines.append('Local PCSX2 requests Administrator approval. LAN mode uses the selected WSL distribution; choose it in Connection and click Refresh.')
+                lines.append('Network setup requests Administrator approval when you press Start.')
             else:
                 for name in ('ip', 'nft', 'sysctl', 'pkexec'):
                     lines.append(f'{name}: ' + ('installed' if shutil.which(name) else 'missing'))
                 lines.append('TUN/TAP: ' + ('available' if Path('/dev/net/tun').exists() else 'missing /dev/net/tun'))
-                lines.append('On Debian/Ubuntu: sudo apt install python3-venv python3-tk iproute2 nftables procps pkexec polkitd')
+                lines.append('On Debian/Ubuntu: sudo apt install python3-venv python3-tk iproute2 nftables procps policykit-1')
             self.events.put({'type': 'setup', 'text': '\n'.join(lines)})
         threading.Thread(target=work, daemon=True).start()
 
     def start(self):
-        if self.controller.active or self.account_busy or self.wsl_busy:
+        if self.controller.active or self.account_busy:
             return
         if not self.identity:
             self.tabs.select(self.account_tab)
@@ -357,8 +315,6 @@ class BridgeApp:
                 messagebox.showerror('LAN interface', 'Select the interface connected to your client LAN.', parent=self.root)
                 return
             config['interface'], config['lan_ip'] = choice
-            if sys.platform == 'win32':
-                config['wsl_distro'] = self.wsl_distro.get()
         elif sys.platform == 'win32':
             config['adapter'] = self.adapter.get().strip()
         self._controls(True)
@@ -378,9 +334,8 @@ class BridgeApp:
         for widget in self.config_controls + self.account_radios:
             widget.configure(state='disabled' if running else 'normal')
         self.interface_box.configure(state='disabled' if running else 'readonly')
-        if sys.platform == 'win32':
-            self.wsl_box.configure(state='disabled' if running else 'readonly')
-            self.wsl_prepare.configure(state='disabled' if running else 'normal')
+        if sys.platform != 'linux':
+            self.gateway_radio.configure(state='disabled')
 
     def _account_controls(self, enabled):
         state = 'normal' if enabled else 'disabled'
@@ -414,7 +369,7 @@ class BridgeApp:
                 line = event['line']
                 self._append(line)
                 if 'READY:' in line:
-                    self.status.set('WSL backend ready — LAN path unverified' if sys.platform == 'win32' and self.mode.get() == 'gateway' else 'Ready')
+                    self.status.set('Ready')
                 elif 'Tunnel offline;' in line:
                     self.status.set('Reconnecting…')
             elif kind == 'status':
@@ -440,18 +395,6 @@ class BridgeApp:
                     self.status.set('Account setup failed')
                     if not self.closing:
                         messagebox.showerror('Account', event['message'], parent=self.root)
-            elif kind == 'wsl_distributions':
-                self.wsl_box.configure(values=event['names'])
-                self.wsl_distro.set(event['selected'])
-            elif kind == 'wsl_done':
-                self.wsl_busy = False
-                self.start_button.configure(state='normal')
-                self.wsl_box.configure(state='readonly')
-                self.wsl_prepare.configure(state='normal')
-                self.refresh_button.configure(state='normal')
-                self.status.set('Stopped')
-                self.details.set(event['message'])
-                self._append(event['message'])
             elif kind == 'interfaces':
                 self.interface_options = {label: (name, ip) for label, name, ip in event['choices']}
                 self.interface_box.configure(values=list(self.interface_options))
@@ -489,7 +432,7 @@ class BridgeApp:
                 if self.status.get() not in ('Setup failed',):
                     self.status.set('Stopped')
                 self._append('Network worker exited.')
-        if self.closing and not self.controller.active and not self.account_busy and not self.wsl_busy:
+        if self.closing and not self.controller.active and not self.account_busy:
             self.root.destroy()
             return
         self.root.after(100, self._pump)
@@ -524,8 +467,6 @@ class BridgeApp:
         self.closing = True
         if self.controller.active:
             self.stop()
-        elif self.wsl_busy:
-            self.status.set('Finishing WSL setup before closing…')
         elif self.account_busy:
             self.status.set('Finishing account setup before closing…')
         else:

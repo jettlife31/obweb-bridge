@@ -12,10 +12,8 @@ Completa los [requisitos de parche del juego y cuenta](prerequisites.md).
 - **Linux:** instala Tkinter y un agente de autorización del escritorio, además de las dependencias del modo del bridge. En Debian/Ubuntu:
 
 ```sh
-sudo apt install python3-venv python3-tk iproute2 nftables procps pkexec polkitd
+sudo apt install python3-venv python3-tk iproute2 nftables procps policykit-1
 ```
-
-Para la GUI de Windows con WSL, usa las [dependencias WSL de la guía LAN](lan.md#windows-mediante-wsl-2-experimental). En ese flujo no hacen falta Tkinter ni polkit dentro de WSL; la GUI se ejecuta en Windows.
 
 ## 2. Abre la aplicación
 
@@ -60,7 +58,7 @@ Con **Saved account** seleccionado, pulsa **Create memory cards** para generar l
 En **Connection**, elige:
 
 - **PCSX2 on this computer:** disponible en Windows y Linux. Consulta [Windows](windows.md) o [Linux](linux.md) para configurar el emulador: **PCAP Switched**, `obw-pcsx2`, interceptación DHCP desactivada, DNS automático y un perfil automático nuevo dentro del juego.
-- **Another device on the LAN:** usa el gateway Linux, con integración experimental mediante WSL 2 en Windows. Sigue la [guía del gateway](lan.md) para detección, preparación de WSL y limitaciones de red. Linux nativo sigue siendo el host LAN validado.
+- **Another device on the LAN:** alojar el gateway actualmente requiere Linux. Selecciona la interfaz conectada a los clientes; la ventana muestra la IP del gateway/DNS tras iniciar. Configura [Android](android.md), [PS2 real](ps2.md) u otro cliente LAN según la [guía del gateway](lan.md).
 
 En Windows, el nombre de una TAP dedicada existente es opcional. Si no se encuentra `tapctl.exe`, una ventana permite localizar el archivo.
 

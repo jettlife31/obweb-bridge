@@ -12,10 +12,8 @@ Complete the [game patch and account prerequisites](prerequisites.md).
 - **Linux:** install Tkinter and a desktop authorization agent in addition to the dependencies for your bridge mode. On Debian/Ubuntu:
 
 ```sh
-sudo apt install python3-venv python3-tk iproute2 nftables procps pkexec polkitd
+sudo apt install python3-venv python3-tk iproute2 nftables procps policykit-1
 ```
-
-For the Windows GUI with WSL, use the [WSL dependencies in the LAN guide](lan.md#windows-via-wsl-2-experimental). Tkinter and polkit are not needed inside WSL for that workflow; the GUI runs on Windows.
 
 ## 2. Open the application
 
@@ -60,7 +58,7 @@ With **Saved account** selected, click **Create memory cards** to generate cards
 In **Connection**, choose:
 
 - **PCSX2 on this computer:** available on Windows and Linux. Use the [Windows](windows.md) or [Linux](linux.md) guide for the emulator settings: **PCAP Switched**, `obw-pcsx2`, DHCP interception off, automatic DNS and a new automatic in-game profile.
-- **Another device on the LAN:** uses the Linux gateway, with experimental WSL 2 integration on Windows. Follow the [gateway guide](lan.md) for WSL detection, preparation and network limitations. Native Linux remains the validated LAN host.
+- **Another device on the LAN:** hosting currently requires Linux. Select the interface connected to the clients; the window shows the gateway/DNS IP after startup. Configure [Android](android.md), a [physical PS2](ps2.md) or another LAN client following the [gateway guide](lan.md).
 
 On Windows, an existing dedicated TAP name is optional. If `tapctl.exe` cannot be found, a file picker asks for it.
 
