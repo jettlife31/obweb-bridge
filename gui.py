@@ -184,11 +184,12 @@ class BridgeApp:
 
     def refresh_accounts(self):
         try:
-            state = login.load_state(login.state_path())
+            state = gui_accounts.load_accounts(login.state_path())
             names = sorted(state['identities'])
-        except (OSError, ValueError):
+        except (OSError, ValueError) as error:
             state, names = {}, []
-            self.events.put({'type': 'error', 'message': 'Could not read saved accounts. Check the local account state file.'})
+            detail = str(error) if type(error) is ValueError else 'Could not read saved accounts. Check the local account state file.'
+            self.events.put({'type': 'account_error', 'message': detail})
         self.saved_box.configure(values=names)
         if names:
             self.account_value.set(state.get('last_name') if state.get('last_name') in names else names[0])

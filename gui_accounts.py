@@ -4,21 +4,48 @@ import secrets
 import login_web as login
 
 
+def permission_message(action, path, error):
+    """Describe local storage failures without exposing identity contents."""
+    denied_path = error.filename or str(path)
+    code = getattr(error, 'winerror', None) or error.errno
+    suffix = f' (OS error {code})' if code is not None else ''
+    return (f'Permission denied while {action}{suffix}.\n\n'
+            f'Account file: {path}\nAccess denied to: {denied_path}\n\n'
+            'This is a local file-access problem, not an invalid REO1 code. '
+            'Check that your current user can read and write this folder and its account file. '
+            'Files created under another user or an elevated session may have different permissions. '
+            'Do not delete your saved identity or change permissions for the whole application.')
+
+
+def load_accounts(path):
+    try:
+        return login.load_state(path)
+    except PermissionError as error:
+        raise ValueError(permission_message('reading saved accounts', path, error)) from None
+
+
+def save_accounts(path, state):
+    try:
+        login.save_state(path, state)
+    except PermissionError as error:
+        raise ValueError(permission_message('saving the account', path, error)) from None
+
+
 def create_saved_cards(name):
     """Generate cards for an existing local identity without re-registering it."""
     path = login.state_path()
-    state = login.load_state(path)
+    state = load_accounts(path)
     if not login.NAME.fullmatch(name) or name not in state['identities']:
         raise ValueError('Select a saved account before creating memory cards.')
     cards, _ = login.prepare_memory_card(name)
     state.setdefault('memory_cards', {})[name] = True
-    login.save_state(path, state)
+    save_accounts(path, state)
     return {'name': name, 'cards': [str(card) for card in cards]}
 
 
 def prepare_account(mode, value, create_cards=None):
     path = login.state_path()
-    state = login.load_state(path)
+    state = load_accounts(path)
     if mode == 'import':
         match = login.TRANSFER.fullmatch(value.strip())
         if not match:
@@ -35,7 +62,7 @@ def prepare_account(mode, value, create_cards=None):
     else:
         raise ValueError('Choose a saved account, a new account or import.')
     state['identities'][name] = token
-    login.save_state(path, state)
+    save_accounts(path, state)
     password = login.credential(name, token)
     status = login.register(name, password)
     if status == 409:
@@ -48,7 +75,7 @@ def prepare_account(mode, value, create_cards=None):
     elif mode == 'import':
         preferences[name] = bool(create_cards)
     state['last_name'] = name
-    login.save_state(path, state)
+    save_accounts(path, state)
     if preferences.get(name, True):
         cards, _ = login.prepare_memory_card(name)
     else:
