@@ -14,6 +14,16 @@ En el modo Ethernet local, usa la IP de la PS2 asignada por DHCP remoto, visible
 
 Continúa con [Android / ARMSX2](android.md) o [PS2 real](ps2.md). Para otro equipo por LAN, establece el gateway y DNS de su red en la IP del equipo del bridge y selecciona Sockets en el emulador.
 
+## Contadores LAN en Windows
+
+Para un gateway LAN mediante WSL, `diagnose.py` observa el lado Linux. Para comprobar qué llega al adaptador LAN de Windows, ejecuta Python de Windows en PowerShell como Administrador desde la carpeta de la aplicación. Npcap debe estar instalado. Sustituye los dos marcadores de IP:
+
+```powershell
+.\.venv\Scripts\python.exe .\diagnose_windows.py --client-ip IP_DEL_CLIENTE --lan-ip IP_DEL_PC_DEL_BRIDGE --seconds 45
+```
+
+Intenta conectar durante la observación. El informe cuenta protocolos/puertos IPv4 y respuestas ICMP de destino inalcanzable, incluido el puerto de destino rechazado cuando está presente. `peer_is_bridge` indica si el otro extremo es la IP del bridge seleccionada; no se muestran IP ajenas, MAC, nombres DNS ni contenido de aplicaciones. No guarda archivos de paquetes ni modifica rutas, firewall o ajustes globales de Pktmon. La ejecución de Npcap en Windows aún requiere validación; las pruebas del analizador usan tramas sintéticas.
+
 ---
 
 Guías relacionadas: [Requisitos previos: parche del juego, Python y cuenta](prerequisites.md) · [PCSX2 en el mismo equipo Windows](windows.md) · [PCSX2 en el mismo equipo Linux](linux.md) · [ARMSX2 en Android](android.md) · [PlayStation 2 real](ps2.md) · [Contenedor en Linux](container.md)
