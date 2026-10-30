@@ -45,7 +45,9 @@ Ejecuta la GUI como **usuario normal tanto en Windows como en Linux**: no uses E
 
 Los archivos de cuenta o carpetas de tarjetas creados antes como Administrador/root o por otro usuario pueden provocar **PermissionError** al ejecutar la GUI como usuario normal. El mensaje de error identifica la ruta afectada. Conserva el código REO1 y los archivos guardados, y corrige el acceso únicamente a la carpeta/archivo de esta aplicación para tu usuario actual. No borres todo el directorio `.local` ni cambies los permisos de carpetas no relacionadas. Consulta también la [configuración nativa de Windows](windows.md).
 
-## 3. Prepara la cuenta
+## 3. Prepara la cuenta (opcional)
+
+La preparación de la cuenta es independiente del reenvío de paquetes. Puedes pulsar **Start bridge** directamente sin abrir esta pestaña ni cargar credenciales guardadas. Usa estas herramientas opcionales solo para crear/importar una cuenta, consultar sus datos de acceso o generar memory cards. El juego sigue necesitando su propia cuenta válida y el guardado correspondiente.
 
 En **Account & memory cards**, selecciona una cuenta guardada, crea un usuario nuevo o pega un código REO1 existente. Pulsa **Prepare account**. El código permanece visible al pegarlo.
 
@@ -62,7 +64,7 @@ En **Connection**, elige:
 
 En Windows, el nombre de una TAP dedicada existente es opcional. Si no se encuentra `tapctl.exe`, una ventana permite localizar el archivo.
 
-Pulsa **Start bridge** y acepta la solicitud del sistema. Espera **Ready** antes de conectar el juego. Usa la tarjeta correspondiente y la contraseña mostrada en la pestaña de la cuenta.
+Pulsa **Start bridge** y acepta la solicitud del sistema. Espera **Ready** antes de conectar el juego. Usa tu tarjeta correspondiente y tu contraseña del juego; mostrarlas en la pestaña de cuenta es opcional.
 
 ## 5. Cierra y diagnostica
 

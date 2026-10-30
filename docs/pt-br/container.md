@@ -8,7 +8,7 @@ Antes de começar, conclua os [pré-requisitos](prerequisites.md). Execute os co
 
 O container oferece somente o modo gateway da LAN e exige Docker Engine no Linux com `--network host`. Para PCSX2 no mesmo computador, use a [interface gráfica](gui.md). O container continua sendo executado pelo terminal.
 
-O container exige `OBWEB_LAN_INTERFACE` (a interface conectada à LAN do cliente) e `OBWEB_USERNAME`. `OBWEB_RUN_MODE` é interno e configurado automaticamente. No Compose, informe as mesmas variáveis em `environment:`.
+O container exige `OBWEB_LAN_INTERFACE` (a interface conectada à LAN do cliente). A preparação da conta é opcional: omita `OBWEB_USERNAME` e `OBWEB_REO_CODE` para iniciar somente a ponte. `OBWEB_RUN_MODE` é interno e configurado automaticamente. No Compose, informe as mesmas variáveis em `environment:`.
 
 Antes de rodar a imagem pela primeira vez, é necessário identificar a interface a ser usada, para isso, execute o comando abaixo para listar as interfaces disponíveis:
 
@@ -36,14 +36,14 @@ docker run --rm --network host \
   --security-opt seccomp=unconfined \
   --mount type=volume,src=obweb-bridge-data,dst=/var/lib/obweb-bridge \
   -e OBWEB_LAN_INTERFACE=enp3s0 \
-  -e OBWEB_USERNAME=seu_usuario \
   ghcr.io/zenaror/obweb-bridge:latest
 ```
 
-Troque `enp3s0` pelo nome da sua interface que o Docker consegue usar. Omita o código REO para criar uma conta nova; o nome de usuário do código deve corresponder a `OBWEB_USERNAME`. O container exibe as credenciais do jogo. Se o nome de usuário já existir e não houver um código correspondente, a inicialização informa um erro. O volume Docker `obweb-bridge-data` mantém os dados da conta e da recuperação entre execuções; acrescente `--cleanup` após o nome da imagem para recuperar a rede depois de uma interrupção forçada.
+Troque `enp3s0` pelo nome da sua interface que o Docker consegue usar. Quando `OBWEB_USERNAME` estiver definido, omita o código REO para criar uma conta nova; o nome de usuário do código deve corresponder a `OBWEB_USERNAME`. O container exibe as credenciais do jogo. Se o nome de usuário já existir e não houver um código correspondente, a inicialização informa um erro. O volume Docker `obweb-bridge-data` mantém os dados da conta e da recuperação entre execuções; acrescente `--cleanup` após o nome da imagem para recuperar a rede depois de uma interrupção forçada.
 
 Acrescente estas opções `-e` antes do nome da imagem somente quando necessário:
 
+- **OPCIONAL** — `-e OBWEB_USERNAME=seu_usuario` para preparar uma conta e exibir suas credenciais do jogo. Sem código REO, cria uma conta nova ou reutiliza a identidade salva.
 - **OPCIONAL** — `-e OBWEB_LAN_IP=192.168.1.10` se a interface selecionada tiver vários endereços IPv4 locais.
 - **OPCIONAL** — `-e OBWEB_CLIENT_IP=192.168.1.114` para restringir o encaminhamento a um único endereço de cliente.
 - **OPCIONAL** — `-e OBWEB_REO_CODE='REO1-username-<32-hex-characters>'` para importar uma conta existente usando o código completo de **Settings > Online > Show my code**.

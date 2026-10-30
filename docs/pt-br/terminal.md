@@ -4,6 +4,9 @@
 
 A [interface gráfica](gui.md) é o padrão para execução nativa no Windows e no Linux. Estes inicializadores de terminal continuam disponíveis como alternativas. Para um container sem GUI, siga o [guia do container](container.md). Execute os comandos na pasta do aplicativo.
 
+
+O menu da conta é opcional: pressione **Enter** ou **S** para pular e iniciar a ponte, **N** para criar uma conta, **I** para importar um código REO1 ou **V** para consultar a última conta salva. Pular não lê credenciais salvas nem consulta o serviço de contas. O login no jogo continua sendo feito com sua própria conta.
+
 ## Windows — terminal
 
 Feche o PCSX2 antes de instalar os pré-requisitos:

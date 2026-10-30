@@ -13,7 +13,7 @@ sudo apt install python3-venv python3-tk iproute2 nftables procps policykit-1
 ./start-gui.sh
 ```
 
-En **Connection**, selecciona **Another device on the LAN**, elige la interfaz conectada a los clientes y prepara la cuenta. Pulsa **Start bridge**, acepta la autorización de red y espera **Ready**. La ventana muestra la IP del gateway/DNS para los clientes. No cambies el gateway ni DNS del propio equipo del bridge. Los clientes deben compartir la LAN, con el aislamiento Wi-Fi desactivado.
+En **Connection**, selecciona **Another device on the LAN**, elige la interfaz conectada a los clientes. Pulsa **Start bridge**, acepta la autorización de red y espera **Ready**. La ventana muestra la IP del gateway/DNS para los clientes. No cambies el gateway ni DNS del propio equipo del bridge. Los clientes deben compartir la LAN, con el aislamiento Wi-Fi desactivado.
 
 ## 2. Continuar
 

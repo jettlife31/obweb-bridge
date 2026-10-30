@@ -24,7 +24,7 @@ If the execution policy blocks the launcher, use this alternative in the same re
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start-gui.ps1
 ```
 
-Choose **PCSX2 on this computer**, prepare the account and click **Start bridge**. Approve the separate network authorization prompt, wait for **Ready**, then open PCSX2.
+Choose **PCSX2 on this computer** and click **Start bridge**. Approve the separate network authorization prompt, wait for **Ready**, then open PCSX2.
 
 To reuse an existing dedicated TAP-Windows6 adapter, enter its name in the GUI connection settings.
 

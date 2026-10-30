@@ -45,7 +45,9 @@ Run the GUI as a **regular user on both Windows and Linux**: do not use Run as A
 
 Account files or memory-card folders created earlier as Administrator/root or under another user can cause **PermissionError** when the GUI later runs as a regular user. The error dialog identifies the affected path. Preserve your REO1 code and saved files, and correct access only for that application folder/file for your current user. Do not delete the entire `.local` directory or change permissions for unrelated folders. See also the [native Windows setup](windows.md).
 
-## 3. Prepare the account
+## 3. Prepare the account (optional)
+
+Account setup is independent of packet forwarding. You can click **Start bridge** directly without opening this tab or loading saved credentials. Use these optional tools only to create/import an account, view its login details or generate memory cards. The game still requires its own valid account and matching save.
 
 In **Account & memory cards**, select a saved account, create a new username or paste an existing REO1 code. Click **Prepare account**. The code remains visible while pasting.
 
@@ -62,7 +64,7 @@ In **Connection**, choose:
 
 On Windows, an existing dedicated TAP name is optional. If `tapctl.exe` cannot be found, a file picker asks for it.
 
-Click **Start bridge** and approve the system prompt. Wait for **Ready** before connecting the game. Use the matching memory card and the game password shown in the account tab.
+Click **Start bridge** and approve the system prompt. Wait for **Ready** before connecting the game. Use your matching memory card and game password; showing them in the account tab is optional.
 
 ## 5. Stop and diagnose
 

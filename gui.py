@@ -44,6 +44,7 @@ class BridgeApp:
         self.controller = BridgeController(self.events.put)
         self.identity = None
         self.account_busy = False
+        self.accounts_loaded = False
         self.closing = False
         self.history = collections.deque(maxlen=500)
         self.interface_options = {}
@@ -54,7 +55,7 @@ class BridgeApp:
         self.account_mode = tk.StringVar(value='saved')
         self.account_value = tk.StringVar()
         self.generate = tk.BooleanVar(value=False)
-        self.details = tk.StringVar(value='Prepare an account before starting the bridge.')
+        self.details = tk.StringVar(value='Start the bridge directly. Account and memory-card setup is optional.')
         self.instructions = tk.StringVar()
         self.root.title('Outbreak Web Bridge')
         self.root.geometry('900x760')
@@ -86,9 +87,10 @@ class BridgeApp:
         self.account_tab = ttk.Frame(tabs, padding=16)
         self.setup_tab = ttk.Frame(tabs, padding=16)
         tabs.add(self.connection_tab, text='Connection')
-        tabs.add(self.account_tab, text='Account & memory cards')
+        tabs.add(self.account_tab, text='Account & memory cards (optional)')
         tabs.add(self.setup_tab, text='Setup')
         self.tabs = tabs
+        tabs.bind('<<NotebookTabChanged>>', self._load_account_tab)
         self._connection_widgets()
         self._account_widgets()
         self._setup_widgets()
@@ -102,7 +104,6 @@ class BridgeApp:
         self.log = scrolledtext.ScrolledText(frame, height=8, wrap='word', state='disabled', font=('TkFixedFont', 9))
         self.log.pack(fill='x')
         self.account_value.trace_add('write', self._invalidate_identity)
-        self.refresh_accounts()
         self._account_changed()
         self._mode_changed()
         self.root.after(100, self._pump)
@@ -182,6 +183,13 @@ class BridgeApp:
             ttk.Button(tab, text=label, command=lambda u=url: webbrowser.open(u)).pack(anchor='w', pady=3)
         ttk.Button(tab, text='Check again', command=self.check_setup).pack(anchor='w', pady=10)
 
+    def _load_account_tab(self, *_):
+        if (not self.accounts_loaded and not self.controller.active and
+                self.tabs.select() == str(self.account_tab)):
+            self.accounts_loaded = True
+            self.refresh_accounts()
+            self._account_changed()
+
     def refresh_accounts(self):
         try:
             state = gui_accounts.load_accounts(login.state_path())
@@ -226,7 +234,7 @@ class BridgeApp:
             for value in self.credential_fields.values():
                 value.set('')
             self.card_text.set('No memory cards selected.')
-            self.details.set('Prepare the selected account before starting the bridge.')
+            self.details.set('Account setup is optional. Start the bridge directly from Connection.')
             self.status.set('Stopped')
 
     def _mode_changed(self):
@@ -303,10 +311,6 @@ class BridgeApp:
 
     def start(self):
         if self.controller.active or self.account_busy:
-            return
-        if not self.identity:
-            self.tabs.select(self.account_tab)
-            messagebox.showinfo('Prepare account', 'Create, import or prepare a saved account before starting.', parent=self.root)
             return
         config = {'mode': self.mode.get()}
         if config['mode'] == 'gateway':
@@ -388,7 +392,7 @@ class BridgeApp:
                     for key, field in self.credential_fields.items():
                         field.set(self.identity[key])
                     self.card_text.set('\n'.join('Memory card: ' + p for p in self.identity['cards']) or 'Use your existing or exported memory card.')
-                    self.details.set('Account prepared. Select the matching memory card in the emulator, then start the bridge.')
+                    self.details.set('Account prepared. Select the matching memory card in the emulator. The bridge starts independently.')
                     self.status.set('Account ready')
                 else:
                     self.identity = None
@@ -432,6 +436,7 @@ class BridgeApp:
                 if self.status.get() not in ('Setup failed',):
                     self.status.set('Stopped')
                 self._append('Network worker exited.')
+                self._load_account_tab()
         if self.closing and not self.controller.active and not self.account_busy:
             self.root.destroy()
             return

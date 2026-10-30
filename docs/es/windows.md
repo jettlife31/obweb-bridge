@@ -24,7 +24,7 @@ Si la directiva de ejecución bloquea el iniciador, usa esta alternativa en la m
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start-gui.ps1
 ```
 
-Elige **PCSX2 on this computer**, prepara la cuenta y pulsa **Start bridge**. Acepta la autorización independiente del auxiliar de red, espera **Ready** y abre PCSX2.
+Elige **PCSX2 on this computer** y pulsa **Start bridge**. Acepta la autorización independiente del auxiliar de red, espera **Ready** y abre PCSX2.
 
 Para reutilizar una TAP-Windows6 dedicada existente, introduce su nombre en la configuración de conexión de la GUI.
 

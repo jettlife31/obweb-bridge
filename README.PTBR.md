@@ -4,6 +4,9 @@
 
 Uma ponte que conecta consoles e emuladores ao Outbreak Web pelo transporte Ethernet via WebSocket. Execute-a no Windows ou no Linux para usar o PCSX2 no mesmo computador, ou execute o gateway no Linux nativo ou em um container Linux para conectar Android, PS2 real e outros clientes pela LAN. O emulador não precisa ser modificado.
 
+
+As ferramentas de conta e memory cards são opcionais. A ponte inicia de forma independente; sua conta é usada no login dentro do jogo.
+
 ## Compatibilidade atual
 
 | Versão da ponte | PCSX2 no mesmo computador | Android / ARMSX2 pela LAN | PS2 real pela LAN | Outro PC pela LAN |

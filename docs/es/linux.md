@@ -13,7 +13,7 @@ sudo apt install python3-venv python3-tk iproute2 policykit-1
 ./start-gui.sh
 ```
 
-Ejecuta la GUI como usuario normal, sin sudo. Elige **PCSX2 on this computer**, prepara la cuenta y pulsa **Start bridge**. El auxiliar de red solicita autorización por separado.
+Ejecuta la GUI como usuario normal, sin sudo. Elige **PCSX2 on this computer** y pulsa **Start bridge**. El auxiliar de red solicita autorización por separado.
 
 Para usar PCAP con el AppImage de PCSX2, extráelo y ejecuta el binario extraído con permisos de captura. El build usado incluye PCAP; la captura requiere permisos adicionales. En otra terminal, este ejemplo supone `~/Downloads/PCSX2.AppImage` — cambia el nombre por el archivo descargado:
 

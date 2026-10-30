@@ -111,10 +111,14 @@ def show_memory_cards(paths, created, say, container=False):
 def login_from_environment():
     """Non-interactive account setup for containers and scripted launches."""
     name = os.environ.get('OBWEB_USERNAME', '')
-    if not NAME.fullmatch(name):
-        raise ValueError('OBWEB_USERNAME is required and must contain 1 to 15 letters or numbers.')
-
     transfer = os.environ.get('OBWEB_REO_CODE', '').strip()
+    if not name:
+        if transfer:
+            raise ValueError('OBWEB_USERNAME is required when OBWEB_REO_CODE is set.')
+        print('Account setup skipped. The bridge does not require account preparation.', flush=True)
+        return
+    if not NAME.fullmatch(name):
+        raise ValueError('OBWEB_USERNAME must contain 1 to 15 letters or numbers.')
     if transfer:
         match = TRANSFER.fullmatch(transfer)
         if not match:
@@ -166,6 +170,16 @@ def login_from_environment():
     show_memory_cards(card_paths, card_created, lambda message: print(message, flush=True), container=True)
 
 
+def account_action(ask):
+    while True:
+        choice = ask('[S] Skip account setup (default) / [N] New / [I] Import / [V] Saved account: ').lower()
+        modes = {'': 'skip', 's': 'skip', 'skip': 'skip',
+                 'n': 'n', 'new': 'n', 'i': 'i', 'import': 'i',
+                 'v': 'saved', 'saved': 'saved'}
+        if choice in modes:
+            return modes[choice]
+
+
 def main():
     if hasattr(os, 'geteuid') and os.geteuid() == 0:
         raise ValueError('Run the launcher as a regular user, without sudo.')
@@ -186,24 +200,27 @@ def main():
             if not answer:
                 raise EOFError()
             return answer.strip()
+        say('Outbreak Web account tools — optional, separate from the WSS tunnel.')
+        choice = account_action(ask)
+        if choice == 'skip':
+            say('Account setup skipped. The bridge does not require account preparation.')
+            return
         path = state_path()
         state = load_state(path)
-        say('Outbreak Web login — account setup, separate from the WSS tunnel.')
         while True:
+            mode = choice or account_action(ask)
+            choice = None
+            if mode == 'skip':
+                say('Account setup skipped. The bridge does not require account preparation.')
+                return
             previous = state.get('last_name', '')
-            if previous and previous in state['identities']:
-                mode = ask(f'Use saved account "{previous}"? [Y]es / [I]mport / [N]ew: ').lower()
-                if mode in ('', 'y', 'yes'):
-                    name = previous
-                    token = state['identities'][name]
-                elif mode in ('i', 'import'):
-                    mode = 'i'
-                elif mode in ('n', 'new'):
-                    mode = 'n'
-                else:
+            if mode == 'saved':
+                if not previous or previous not in state['identities']:
+                    say('No saved account selected. Create an account or import your REO1 code.')
                     continue
-            else:
-                mode = ask('[N] New account / [I] Import existing account: ').lower()
+                name, token = previous, state['identities'][previous]
+                say(f'Using saved account "{name}".')
+                mode = 'y'
 
             if mode in ('i', 'import'):
                 transfer = ask('Paste the complete REO1 transfer code: ')
@@ -227,7 +244,11 @@ def main():
             save_state(path, state)
             secret = credential(name, token)
             say('Registering/checking the username with Outbreak Web…')
-            status = register(name, secret)
+            try:
+                status = register(name, secret)
+            except (OSError, ValueError, urllib.error.URLError) as error:
+                say(f'Account setup failed ({type(error).__name__}). Retry or skip account setup to start the bridge.')
+                continue
             if status == 409:
                 say('Username already registered with a different credential. Choose another username or import your code.')
                 # Keep the pending identity on disk; explicit import may replace it.
@@ -239,7 +260,8 @@ def main():
                         save_state(path, state)
                 continue
             if not 200 <= status < 300:
-                raise ValueError(f'The service rejected registration (HTTP {status}); the gateway was not started.')
+                say(f'The service rejected registration (HTTP {status}). Retry or skip account setup to start the bridge.')
+                continue
             state['last_name'] = name
             preferences = state.setdefault('memory_cards', {})
             if mode in ('i', 'import'):

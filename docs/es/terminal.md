@@ -4,6 +4,9 @@
 
 La [interfaz gráfica](gui.md) es la opción predeterminada para Windows y Linux nativos. Estos iniciadores de terminal siguen disponibles como alternativas. Para un contenedor sin GUI, sigue la [guía del contenedor](container.md). Ejecuta los comandos desde la carpeta de la aplicación.
 
+
+El menú de cuenta es opcional: pulsa **Enter** o **S** para omitirlo e iniciar el bridge, **N** para crear una cuenta, **I** para importar un código REO1 o **V** para consultar la última cuenta guardada. Omitirlo no lee credenciales guardadas ni contacta con el servicio de cuentas. El acceso al juego sigue usando tu propia cuenta.
+
 ## Windows — terminal
 
 Cierra PCSX2 antes de instalar los requisitos:

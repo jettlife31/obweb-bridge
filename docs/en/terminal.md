@@ -4,6 +4,9 @@
 
 The [desktop GUI](gui.md) is the default for native Windows and Linux. These terminal launchers remain available as alternatives. For a container without a GUI, follow the [container guide](container.md). Run commands from the application folder.
 
+
+The account menu is optional: press **Enter** or **S** to skip it and start the bridge, **N** to create an account, **I** to import a REO1 code, or **V** to view the last saved account. Skipping does not read saved credentials or contact the account service. You still log into the game with your own account.
+
 ## Windows — terminal
 
 Close PCSX2 before installing the prerequisites:

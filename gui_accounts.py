@@ -68,7 +68,7 @@ def prepare_account(mode, value, create_cards=None):
     if status == 409:
         raise ValueError('Username already registered with another credential. Import the matching REO1 code or choose another username.')
     if not 200 <= status < 300:
-        raise ValueError(f'Account service returned HTTP {status}. The bridge was not started.')
+        raise ValueError(f'Account service returned HTTP {status}. You can start the bridge without preparing an account.')
     preferences = state.setdefault('memory_cards', {})
     if mode == 'new':
         preferences[name] = True

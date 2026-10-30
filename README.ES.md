@@ -4,6 +4,9 @@
 
 Un bridge que conecta consolas y emuladores a Outbreak Web mediante su transporte Ethernet sobre WebSocket. Ejecútalo en Windows o Linux para usar PCSX2 en el mismo equipo, o ejecuta el gateway en Linux nativo o en un contenedor Linux para Android, una PS2 real y otros clientes. No hace falta modificar el emulador.
 
+
+Las herramientas de cuenta y memory cards son opcionales. El bridge inicia de forma independiente; tu cuenta se utiliza al entrar en el juego.
+
 ## Compatibilidad actual
 
 | Versión del bridge | PCSX2 en el mismo equipo | Android / ARMSX2 por LAN | PS2 real por LAN | Otro PC por LAN |

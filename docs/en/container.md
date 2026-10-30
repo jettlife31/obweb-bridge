@@ -8,7 +8,7 @@ Before starting, complete the [prerequisites](prerequisites.md). Run commands fr
 
 The container provides only the LAN gateway mode and requires Docker Engine on Linux with `--network host`. For PCSX2 on the same computer, use the [desktop GUI](gui.md). The container remains a terminal-only workflow.
 
-The container requires `OBWEB_LAN_INTERFACE` (the interface connected to the client LAN) and `OBWEB_USERNAME`. `OBWEB_RUN_MODE` is internal and set automatically. Compose users can pass the same variables under `environment:`.
+The container requires `OBWEB_LAN_INTERFACE` (the interface connected to the client LAN). Account setup is optional: omit both `OBWEB_USERNAME` and `OBWEB_REO_CODE` to start only the bridge. `OBWEB_RUN_MODE` is internal and set automatically. Compose users can pass the same variables under `environment:`.
 
 Before running the image for the first time, identify the interface to use by running the following command to list the available interfaces:
 
@@ -36,14 +36,14 @@ docker run --rm --network host \
   --security-opt seccomp=unconfined \
   --mount type=volume,src=obweb-bridge-data,dst=/var/lib/obweb-bridge \
   -e OBWEB_LAN_INTERFACE=enp3s0 \
-  -e OBWEB_USERNAME=your_username \
   ghcr.io/zenaror/obweb-bridge:latest
 ```
 
-Replace `enp3s0` with the name of an interface Docker can use. Omit the REO code to create a new account; the code's username must match `OBWEB_USERNAME`. The container prints the game credentials. An existing username without a matching code produces an error. The `obweb-bridge-data` Docker volume keeps account and cleanup state between runs; add `--cleanup` after the image name to recover from a forced stop.
+Replace `enp3s0` with the name of an interface Docker can use. When `OBWEB_USERNAME` is set, omit the REO code to create a new account; the code's username must match `OBWEB_USERNAME`. The container prints the game credentials. An existing username without a matching code produces an error. The `obweb-bridge-data` Docker volume keeps account and cleanup state between runs; add `--cleanup` after the image name to recover from a forced stop.
 
 Add these `-e` flags before the image name only when needed:
 
+- **OPTIONAL** — `-e OBWEB_USERNAME=your_username` to prepare an account and print its game credentials. With no REO code, a new account is created or the saved identity is reused.
 - **OPTIONAL** — `-e OBWEB_LAN_IP=192.168.1.10` when the selected interface has multiple local IPv4 addresses.
 - **OPTIONAL** — `-e OBWEB_CLIENT_IP=192.168.1.114` to restrict forwarding to one client address.
 - **OPTIONAL** — `-e OBWEB_REO_CODE='REO1-username-<32-hex-characters>'` to import an existing account using the complete code from **Settings > Online > Show my code**.

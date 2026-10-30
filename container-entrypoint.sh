@@ -17,20 +17,23 @@ fi
 # Discovery is read-only and runs before credentials or persistent state setup.
 python /app/container_interfaces.py
 
-if [ -z "${OBWEB_USERNAME:-}" ]; then
-  echo 'Set OBWEB_USERNAME to run the container without interactive input.' >&2
+if [ -n "${OBWEB_REO_CODE:-}" ] && [ -z "${OBWEB_USERNAME:-}" ]; then
+  echo 'Set OBWEB_USERNAME when importing an OBWEB_REO_CODE.' >&2
   exit 2
 fi
 
 
 STATE_HOME=${XDG_STATE_HOME:-/var/lib/obweb-bridge/state}
 LOGIN_STATE="$STATE_HOME/outbreak-web-login"
-if [ -L "$STATE_HOME" ] || [ -L "$LOGIN_STATE" ]; then
-  echo 'The account state path must not be a symbolic link.' >&2
-  exit 1
+mkdir -p "$(dirname "${OBWEB_RUNTIME_DIR:-/var/lib/obweb-bridge/runtime}")" /run/netns
+if [ -n "${OBWEB_USERNAME:-}" ]; then
+  if [ -L "$STATE_HOME" ] || [ -L "$LOGIN_STATE" ]; then
+    echo 'The account state path must not be a symbolic link.' >&2
+    exit 1
+  fi
+  mkdir -p "$LOGIN_STATE"
+  chown obweb:obweb "$STATE_HOME" "$LOGIN_STATE"
 fi
-mkdir -p "$LOGIN_STATE" "$(dirname "${OBWEB_RUNTIME_DIR:-/var/lib/obweb-bridge/runtime}")" /run/netns
-chown obweb:obweb "$STATE_HOME" "$LOGIN_STATE"
 
 LAN_INTERFACE=$OBWEB_LAN_INTERFACE
 set -- --lan-interface "$LAN_INTERFACE"
@@ -42,7 +45,7 @@ if [ -n "${OBWEB_WSS_ORIGIN:-}" ]; then set -- "$@" --origin "$OBWEB_WSS_ORIGIN"
 python /app/gateway.py "$@"
 runuser -u obweb -- env HOME=/home/obweb XDG_STATE_HOME="$STATE_HOME" \
   OBWEB_RUN_MODE=container \
-  OBWEB_USERNAME="$OBWEB_USERNAME" OBWEB_REO_CODE="${OBWEB_REO_CODE:-}" \
+  OBWEB_USERNAME="${OBWEB_USERNAME:-}" OBWEB_REO_CODE="${OBWEB_REO_CODE:-}" \
   python /app/login_web.py
 echo 'Forwarded client IPv4 traffic will use WSS. Press Ctrl+C to stop.'
 exec python /app/gateway.py "$@" --run

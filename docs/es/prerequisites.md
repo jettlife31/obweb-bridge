@@ -27,6 +27,8 @@ xdelta3 -d -s "original.iso" "patch.xdelta" "outbreak-web.iso"
 
 ## 3. Prepara tu cuenta de Outbreak Web
 
+La cuenta la necesita el juego, no el transporte del bridge. Si el juego/guardado ya está configurado, inicia el bridge sin crear ni importar una cuenta en su equipo. Las herramientas de cuenta siguientes son opcionales.
+
 Puedes crear una cuenta mediante el iniciador del bridge. Al confirmar el registro, muestra el usuario, la contraseña y el código REO1 y genera `outbreak-file1.ps2` y `outbreak-file2.ps2`. En la ejecución nativa, los archivos se guardan en `generated-memcards/`, dentro de la carpeta de la aplicación.
 
 Para importar una cuenta existente de Outbreak Web:

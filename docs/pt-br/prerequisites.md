@@ -27,6 +27,8 @@ xdelta3 -d -s "original.iso" "patch.xdelta" "outbreak-web.iso"
 
 ## 3. Prepare sua conta do Outbreak Web
 
+A conta é exigida pelo jogo, não pelo transporte da ponte. Se o jogo/save já está configurado, inicie a ponte sem criar ou importar conta no computador da ponte. As ferramentas de conta abaixo são facilidades opcionais.
+
 Você pode criar uma conta pelo inicializador da ponte. Ao confirmar o cadastro, ele exibe usuário, senha e código REO1 e gera `outbreak-file1.ps2` e `outbreak-file2.ps2`. Na execução nativa, os cartões ficam em `generated-memcards/`, na pasta do aplicativo.
 
 Para importar uma conta existente do Outbreak Web:

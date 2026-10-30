@@ -27,6 +27,8 @@ xdelta3 -d -s "original.iso" "patch.xdelta" "outbreak-web.iso"
 
 ## 3. Prepare your Outbreak Web account
 
+The account is required by the game, not by the bridge transport. If your game/save is already configured, start the bridge without creating or importing an account on the bridge computer. The account tools below are optional conveniences.
+
 You can create an account through the bridge launcher. Once registration succeeds, it displays the username, password and REO1 code and generates `outbreak-file1.ps2` and `outbreak-file2.ps2`. Native launches save the cards in `generated-memcards/` inside the application directory.
 
 To import an existing Outbreak Web account:
