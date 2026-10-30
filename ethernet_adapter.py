@@ -136,10 +136,38 @@ class WindowsTap:
         prelude = ('$ErrorActionPreference="Stop"; '
                    '[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); '
                    '$OutputEncoding = [Console]::OutputEncoding; ')
+        # Emit structured local error metadata, never the full command, error
+        # body or an unrelated diagnostic stream.
+        guarded = ('try { ' + script + ' } catch { '
+                   '$details = @{ error_id = $_.FullyQualifiedErrorId; '
+                   'category = $_.CategoryInfo.Category.ToString(); '
+                   'exception = $_.Exception.GetType().FullName; '
+                   'hresult = $_.Exception.HResult; '
+                   'native_code = $_.Exception.NativeErrorCode }; '
+                   '[Console]::Error.WriteLine("OBWEB_PS_ERROR:" + '
+                   '($details | ConvertTo-Json -Compress)); exit 1 }')
+        command = re.search(r'\b(?:Get|Set|New|Remove)-[A-Za-z]+', script)
+        operation = command[0] if command else 'PowerShell'
         result = subprocess.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command',
-                                 prelude + script], capture_output=True)
+                                 prelude + guarded], capture_output=True)
         if result.returncode:
-            raise RuntimeError('Windows adapter operation failed; run the launcher as Administrator and verify TAP-Windows6 is installed.')
+            details = []
+            for line in result.stderr.splitlines():
+                if not line.startswith(b'OBWEB_PS_ERROR:'):
+                    continue
+                try:
+                    record = json.loads(line[len(b'OBWEB_PS_ERROR:'):].decode('utf-8-sig'))
+                    for key in ('error_id', 'category', 'exception', 'hresult', 'native_code'):
+                        value = record.get(key)
+                        if isinstance(value, (str, int)) and str(value):
+                            clean = re.sub(r'[^A-Za-z0-9_., :+()\\/-]', '?', str(value))[:200]
+                            details.append(f'{key}={clean}')
+                except (UnicodeError, ValueError, AttributeError):
+                    pass
+                break
+            detail = '; '.join(details) or 'no structured Windows error was returned'
+            raise RuntimeError(f'Windows adapter operation failed at {operation} '
+                               f'(exit {result.returncode}): {detail}')
         try:
             return result.stdout.decode('utf-8-sig').strip()
         except UnicodeDecodeError:
@@ -184,7 +212,13 @@ class WindowsTap:
             self._open()
             return self
         except BaseException:
-            self.__exit__(None, None, None)
+            try:
+                self.__exit__(None, None, None)
+            except Exception as cleanup_error:
+                # Keep the setup error visible even when partial cleanup fails.
+                print(str(cleanup_error) if isinstance(cleanup_error, RuntimeError)
+                      else 'Windows TAP cleanup failed; check the dedicated adapter before retrying.',
+                      file=sys.stderr)
             raise
 
     def _open(self):

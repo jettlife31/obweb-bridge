@@ -58,7 +58,7 @@ El gateway LAN reenvía los dispositivos de la subred seleccionada; `OBWEB_CLIEN
 
 #### PCSX2 local — Windows
 
-Instala Python 3.10+ y Npcap. Ejecuta el instalador de OpenVPN Community y selecciona el componente del controlador TAP-Windows6, que incluye `tapctl.exe`. Extraer el MSI por sí solo no instala el controlador. Si el bridge no encuentra `tapctl.exe`, solicita la ruta del archivo o de la carpeta. Abre PowerShell como Administrador y ejecuta:
+Instala Python 3.10+ y Npcap. Descarga [OpenVPN Community Edition](https://openvpn.net/community/) (no OpenVPN Connect). En el instalador, selecciona tanto el componente de la aplicación OpenVPN (que proporciona `tapctl.exe`) como el controlador TAP-Windows6. Instalar solo el controlador puede dejar únicamente `tapinstall.exe`, que el bridge no utiliza. Extraer el MSI por sí solo no instala el controlador. Si el bridge no encuentra `tapctl.exe`, solicita la ruta del archivo o de la carpeta. Abre PowerShell como Administrador y ejecuta:
 
 ```powershell
 .\start-ethernet.ps1
