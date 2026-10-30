@@ -6,14 +6,14 @@ Antes de começar, conclua os [pré-requisitos](prerequisites.md). Execute os co
 
 ## 1. Instale os pré-requisitos e inicie a ponte
 
-Instale Python 3.10+, `iproute2` e suporte a TUN/TAP. No Debian ou Ubuntu:
+Instale Python 3.10+, Tkinter, `iproute2`, suporte a TUN/TAP e um agente de autorização do desktop. No Debian/Ubuntu:
 
 ```sh
-sudo apt install python3-venv iproute2
-./start-ethernet.sh
+sudo apt install python3-venv python3-tk iproute2 policykit-1
+./start-gui.sh
 ```
 
-Execute o inicializador como usuário comum; ele solicita `sudo` para preparar a interface virtual.
+Execute a GUI como usuário comum, sem sudo. Escolha **PCSX2 on this computer**, prepare a conta e clique em **Start bridge**. O auxiliar de rede pede autorização separadamente.
 
 Para usar PCAP com o AppImage do PCSX2, extraia-o e execute o binário extraído com as permissões de captura. O build que usamos tem PCAP; a captura exige permissões adicionais. Em outro terminal, este exemplo considera o arquivo em `~/Downloads/PCSX2.AppImage` — ajuste o nome ao arquivo baixado:
 
@@ -57,9 +57,11 @@ Mantenha a ponte aberta enquanto joga. A interface criada por ela é removida ao
 
 Use a imagem com patch e o memory card da mesma conta, inicie o jogo do zero, escolha NETWORK PLAY e depois **Go Online**, informando a senha exibida pelo assistente. A ponte pode ficar aberta sem jogadores, sem limite de duração ou inatividade. Se o WSS cair, ela tentará reconectar automaticamente; uma partida em andamento pode precisar ser reconectada pelo jogo.
 
-Para encerrar a ponte, pressione Ctrl+C.
+Para encerrar a ponte, clique em **Stop** ou feche a janela.
 
 Para contadores e metadados de protocolo na ponte Linux, consulte [Diagnóstico](diagnostics.md).
+
+Para os inicializadores antigos de terminal, consulte [Outras formas de executar](terminal.md).
 
 ---
 

@@ -6,7 +6,7 @@ Before starting, complete the [prerequisites](prerequisites.md). Run commands fr
 
 ## 1. Start a LAN gateway
 
-First [start the LAN gateway](lan.md), either natively or with the [container](container.md). Wait for **READY** before changing the client network.
+First [start the LAN gateway](lan.md), using the GUI or the [container](container.md). Wait for **READY** before changing the client network.
 
 ## 2. Select the memory card
 
@@ -26,7 +26,7 @@ Connect the PS2 to the same LAN as the bridge computer. In the game, create a ne
 
 Use the patched image and the memory card for the same account, boot the game from a full start, choose NETWORK PLAY and then **Go Online**, and enter the password from the login helper. The bridge can stay open without players, with no duration or inactivity limit. If WSS disconnects, it automatically retries; an active match may need to be reconnected in the game.
 
-Press Ctrl+C to stop the bridge. If you used gateway mode, restore the client gateway and DNS when finished.
+Click **Stop** or close the window to stop the bridge. If you used gateway mode, restore the client gateway and DNS when finished.
 
 ---
 

@@ -34,7 +34,8 @@ def openvpn_install_directories():
     return directories
 
 
-def find_tapctl():
+def locate_tapctl():
+    """Read-only discovery shared by the terminal and desktop interfaces."""
     executable = shutil.which('tapctl.exe')
     if executable:
         return executable
@@ -47,6 +48,13 @@ def find_tapctl():
         candidate = Path(os.path.expandvars(root)) / 'bin' / 'tapctl.exe'
         if candidate.is_file():
             return str(candidate)
+    return None
+
+
+def find_tapctl():
+    executable = locate_tapctl()
+    if executable:
+        return executable
     print('tapctl.exe was not found automatically. It is included with OpenVPN / TAP-Windows6.')
     while True:
         try:

@@ -8,7 +8,11 @@ A bridge that connects consoles and emulators to Outbreak Web over its Ethernet 
 
 Start with the prerequisites, then follow the guide for your setup.
 
+Use the **GUI by default** on Windows and Linux. The container uses terminal commands; native terminal launchers remain under Other ways to run.
+
 **[0. Prerequisites](docs/en/prerequisites.md)**
+
+**[Desktop GUI (Windows and Linux)](docs/en/gui.md)**
 
 | Your setup | Guide |
 |---|---|
@@ -24,3 +28,5 @@ The LAN gateway forwards devices in the selected subnet; setting `OBWEB_CLIENT_I
 
 - [LAN gateway](docs/en/lan.md)
 - [Diagnostics (Linux)](docs/en/diagnostics.md)
+
+- [Other ways to run](docs/en/terminal.md)

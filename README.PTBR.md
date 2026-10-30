@@ -8,7 +8,11 @@ Uma ponte que conecta consoles e emuladores ao Outbreak Web pelo transporte Ethe
 
 Comece pelos pré-requisitos e depois siga o guia da sua configuração.
 
+Use a **GUI como padrão** no Windows e no Linux. O container usa comandos de terminal; os inicializadores nativos de terminal continuam em Outras formas de executar.
+
 **[0. Pré-requisitos](docs/pt-br/prerequisites.md)**
+
+**[Interface gráfica (Windows e Linux)](docs/pt-br/gui.md)**
 
 | Sua configuração | Guia |
 |---|---|
@@ -24,3 +28,5 @@ O gateway da LAN encaminha os dispositivos da sub-rede selecionada; `OBWEB_CLIEN
 
 - [Gateway da LAN](docs/pt-br/lan.md)
 - [Diagnóstico (Linux)](docs/pt-br/diagnostics.md)
+
+- [Outras formas de executar](docs/pt-br/terminal.md)

@@ -6,7 +6,7 @@ Before starting, complete the [prerequisites](prerequisites.md). Run commands fr
 
 ## 1. Run the container image
 
-The container provides only the LAN gateway mode and requires Docker Engine on Linux with `--network host`. For PCSX2 on the same computer, use `start-ethernet.sh` on Linux or `start-ethernet.ps1` on Windows.
+The container provides only the LAN gateway mode and requires Docker Engine on Linux with `--network host`. For PCSX2 on the same computer, use the [desktop GUI](gui.md). The container remains a terminal-only workflow.
 
 The container requires `OBWEB_LAN_INTERFACE` (the interface connected to the client LAN) and `OBWEB_USERNAME`. `OBWEB_RUN_MODE` is internal and set automatically. Compose users can pass the same variables under `environment:`.
 

@@ -6,7 +6,7 @@ Antes de começar, conclua os [pré-requisitos](prerequisites.md). Execute os co
 
 ## 1. Inicie um gateway da LAN
 
-Primeiro [inicie o gateway da LAN](lan.md), de forma nativa ou pelo [container](container.md). Aguarde **READY** antes de alterar a rede do cliente.
+Primeiro [inicie o gateway da LAN](lan.md), pela GUI ou pelo [container](container.md). Aguarde **READY** antes de alterar a rede do cliente.
 
 ## 2. Selecione o memory card
 
@@ -28,7 +28,7 @@ Ative Ethernet, escolha **Online / Sockets** e informe manualmente o IP LAN do c
 
 Use a imagem com patch e o memory card da mesma conta, inicie o jogo do zero, escolha NETWORK PLAY e depois **Go Online**, informando a senha exibida pelo assistente. A ponte pode ficar aberta sem jogadores, sem limite de duração ou inatividade. Se o WSS cair, ela tentará reconectar automaticamente; uma partida em andamento pode precisar ser reconectada pelo jogo.
 
-Para encerrar a ponte, pressione Ctrl+C. Se usou o modo gateway, restaure o gateway e DNS originais do cliente quando terminar.
+Para encerrar a ponte, clique em **Stop** ou feche a janela. Se usou o modo gateway, restaure o gateway e DNS originais do cliente quando terminar.
 
 ---
 

@@ -12,21 +12,27 @@ Feche o PCSX2 antes de instalar os pré-requisitos:
 2. Baixe e instale o [Npcap pelo site oficial](https://npcap.com/#download). Ele é necessário para a interface `obw-pcsx2` aparecer na lista PCAP do PCSX2.
 3. Baixe o [OpenVPN Community Edition](https://openvpn.net/community/) (não o OpenVPN Connect), abra o instalador e clique em **Install Now**.
 
-Depois de instalar todos os pré-requisitos, abra o PowerShell como Administrador e execute:
+Depois de instalar todos os pré-requisitos, abra um PowerShell comum (sem Executar como Administrador) e execute:
 
 ```powershell
-.\start-ethernet.ps1
+.\start-gui.ps1
 ```
 
-Se o PowerShell bloquear o script pela política de execução, use esta alternativa no mesmo terminal como Administrador. Ela vale apenas para esse processo e não altera a política do sistema permanentemente:
+Se a política de execução bloquear o inicializador, use esta alternativa no mesmo terminal de usuário comum. Ela altera a política apenas para esse processo:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start-ethernet.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start-gui.ps1
 ```
 
-Aguarde **READY** e depois abra o PCSX2.
+Escolha **PCSX2 on this computer**, prepare a conta e clique em **Start bridge**. Aprove a autorização separada do auxiliar de rede, aguarde **Ready** e depois abra o PCSX2.
 
-Para usar uma TAP-Windows6 dedicada existente, execute `.\start-ethernet.ps1 -Adapter "SUA INTERFACE TAP"`. Partidas no Windows ainda precisam de validação.
+Para reutilizar uma TAP-Windows6 dedicada existente, informe seu nome nas configurações de conexão da GUI.
+
+### Permissões
+
+Execute a GUI como **usuário comum tanto no Windows quanto no Linux**: não use Executar como Administrador para a GUI no Windows nem sudo para a GUI no Linux. Aprove a elevação apenas do auxiliar de rede ao clicar em **Start bridge**.
+
+Arquivos de conta ou pastas de memory cards criados antes como Administrador/root ou por outro usuário podem causar **PermissionError** quando a GUI passa a rodar como usuário comum. A mensagem de erro identifica o caminho afetado. Preserve o REO1 e os arquivos salvos e corrija o acesso somente à pasta/arquivo desse aplicativo para o seu usuário atual. Não apague a pasta `.local` inteira nem altere permissões de pastas não relacionadas.
 
 ## 2. Selecione o memory card
 
@@ -49,7 +55,7 @@ Mantenha a ponte aberta enquanto joga. A interface criada por ela é removida ao
 
 Use a imagem com patch e o memory card da mesma conta, inicie o jogo do zero, escolha NETWORK PLAY e depois **Go Online**, informando a senha exibida pelo assistente. A ponte pode ficar aberta sem jogadores, sem limite de duração ou inatividade. Se o WSS cair, ela tentará reconectar automaticamente; uma partida em andamento pode precisar ser reconectada pelo jogo.
 
-Para encerrar a ponte, pressione Ctrl+C.
+Para encerrar a ponte, clique em **Stop** ou feche a janela.
 
 ## Se a TAP não aparecer no PCAP
 
@@ -62,6 +68,8 @@ Get-NetAdapterBinding -Name "obw-pcsx2" -AllBindings -IncludeHidden | Format-Tab
 ```
 
 Se a inicialização falhar, copie a linha que identifica o comando do Windows e os códigos do erro. Mantenha as credenciais da conta fora das capturas de tela.
+
+Para os inicializadores antigos de terminal, consulte [Outras formas de executar](terminal.md).
 
 ---
 

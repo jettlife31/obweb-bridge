@@ -8,7 +8,11 @@ Un bridge que conecta consolas y emuladores a Outbreak Web mediante su transport
 
 Empieza por los requisitos previos y sigue la guía de tu configuración.
 
+Usa la **GUI como opción predeterminada** en Windows y Linux. El contenedor usa comandos de terminal; los iniciadores nativos de terminal siguen en Otras formas de ejecutar.
+
 **[0. Requisitos previos](docs/es/prerequisites.md)**
+
+**[Interfaz gráfica (Windows y Linux)](docs/es/gui.md)**
 
 | Tu configuración | Guía |
 |---|---|
@@ -24,3 +28,5 @@ El gateway LAN reenvía los dispositivos de la subred seleccionada; `OBWEB_CLIEN
 
 - [Gateway LAN](docs/es/lan.md)
 - [Diagnóstico (Linux)](docs/es/diagnostics.md)
+
+- [Otras formas de ejecutar](docs/es/terminal.md)
