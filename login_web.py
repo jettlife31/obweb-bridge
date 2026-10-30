@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Prepare an Outbreak Web identity. This is separate from packet forwarding."""
-import getpass
 import hashlib
 import json
 import os
@@ -207,7 +206,7 @@ def main():
                 mode = ask('[N] New account / [I] Import existing account: ').lower()
 
             if mode in ('i', 'import'):
-                transfer = getpass.getpass('Paste the complete REO1 transfer code: ', stream=tty).strip()
+                transfer = ask('Paste the complete REO1 transfer code: ')
                 match = TRANSFER.fullmatch(transfer)
                 if not match:
                     say('Code not recognized. Copy the complete REO1 transfer code from the website.')
@@ -233,7 +232,7 @@ def main():
                 say('Username already registered with a different credential. Choose another username or import your code.')
                 # Keep the pending identity on disk; explicit import may replace it.
                 if ask('Import your code for this username? [y/N]: ').lower() == 'y':
-                    transfer = getpass.getpass('REO1 code (hidden input): ', stream=tty).strip()
+                    transfer = ask('Paste the complete REO1 transfer code: ')
                     match = TRANSFER.fullmatch(transfer)
                     if match and match[1] == name:
                         state['identities'][name] = match[2]

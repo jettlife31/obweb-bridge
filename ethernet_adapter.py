@@ -130,12 +130,20 @@ class WindowsTap:
 
     @staticmethod
     def powershell(script):
+        # Windows PowerShell otherwise uses the active console code page, which
+        # may differ from Python's UTF-8 default. Keep both pipes as bytes so an
+        # undecodable diagnostic cannot crash subprocess's reader thread.
+        prelude = ('$ErrorActionPreference="Stop"; '
+                   '[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); '
+                   '$OutputEncoding = [Console]::OutputEncoding; ')
         result = subprocess.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command',
-                                 '$ErrorActionPreference="Stop"; ' + script],
-                                capture_output=True, text=True)
+                                 prelude + script], capture_output=True)
         if result.returncode:
             raise RuntimeError('Windows adapter operation failed; run the launcher as Administrator and verify TAP-Windows6 is installed.')
-        return result.stdout.strip()
+        try:
+            return result.stdout.decode('utf-8-sig').strip()
+        except UnicodeDecodeError:
+            raise RuntimeError('Windows adapter output was not valid UTF-8; verify the PowerShell installation and retry.') from None
 
     def adapters(self):
         raw = self.powershell('Get-NetAdapter -IncludeHidden | Select-Object Name,InterfaceDescription,InterfaceGuid,InterfaceIndex,MacAddress | ConvertTo-Json -Compress')

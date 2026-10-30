@@ -8,6 +8,12 @@ Un bridge que conecta consolas y emuladores a Outbreak Web mediante su transport
 
 ### 0. Requisitos previos
 
+#### Instalar Python para la ejecución nativa
+
+Instala Python 3.10 o posterior desde el [sitio oficial de Python](https://www.python.org/downloads/). En Windows, asegúrate de que el comando `py` esté disponible; vuelve a abrir PowerShell tras instalarlo y comprueba con `py -3 --version`. En Linux, usa los paquetes Python de tu distribución, incluido `venv`, como en los ejemplos siguientes, y comprueba con `python3 --version`.
+
+Los iniciadores usan el Python instalado en el equipo y crean `.venv` e instalan las bibliotecas necesarias automáticamente. El contenedor ya incluye Python.
+
 #### Aplica el parche a la imagen del juego
 
 Usa el parche xdelta correspondiente a tu imagen original de EE. UU.:

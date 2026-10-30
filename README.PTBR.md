@@ -8,6 +8,12 @@ Uma ponte que conecta consoles e emuladores ao Outbreak Web pelo transporte Ethe
 
 ### 0. Pré-requisitos
 
+#### Instalar Python para execução nativa
+
+Instale Python 3.10 ou mais recente pelo [site oficial do Python](https://www.python.org/downloads/). No Windows, garanta que o comando `py` esteja disponível; reabra o PowerShell após instalar e confira com `py -3 --version`. No Linux, use os pacotes Python da sua distribuição, incluindo `venv`, conforme os exemplos abaixo, e confira com `python3 --version`.
+
+Os inicializadores usam o Python instalado na máquina e criam a `.venv` e instalam as bibliotecas necessárias automaticamente. O container já inclui Python.
+
 #### Aplique o patch à imagem do jogo
 
 Use o patch xdelta correspondente à sua imagem original dos EUA:

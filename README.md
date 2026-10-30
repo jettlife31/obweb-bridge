@@ -8,6 +8,12 @@ A bridge that connects consoles and emulators to Outbreak Web over its Ethernet 
 
 ### 0. Prerequisites
 
+#### Install Python for native use
+
+Install Python 3.10 or newer from the [official Python website](https://www.python.org/downloads/). On Windows, ensure the `py` command is available; reopen PowerShell after installation and check with `py -3 --version`. On Linux, use your distribution's Python packages, including `venv`, as shown below, and check with `python3 --version`.
+
+The launchers use your installed Python and automatically create `.venv` and install the required libraries. The container already includes Python.
+
 #### Patch your game image
 
 Use the matching xdelta patch for your own USA game image:
