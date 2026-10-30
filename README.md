@@ -10,6 +10,8 @@ Start with the prerequisites, then follow the guide for your setup.
 
 **[0. Prerequisites](docs/en/prerequisites.md)**
 
+**[Desktop GUI (Windows and Linux)](docs/en/gui.md)**
+
 | Your setup | Guide |
 |---|---|
 | PCSX2 on the same Windows computer | [Continue](docs/en/windows.md) |

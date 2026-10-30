@@ -10,6 +10,8 @@ Empieza por los requisitos previos y sigue la guía de tu configuración.
 
 **[0. Requisitos previos](docs/es/prerequisites.md)**
 
+**[Interfaz gráfica (Windows y Linux)](docs/es/gui.md)**
+
 | Tu configuración | Guía |
 |---|---|
 | PCSX2 en el mismo equipo Windows | [Continuar](docs/es/windows.md) |
