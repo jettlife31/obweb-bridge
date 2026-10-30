@@ -87,7 +87,7 @@ class BridgeApp:
         self.account_tab = ttk.Frame(tabs, padding=16)
         self.setup_tab = ttk.Frame(tabs, padding=16)
         tabs.add(self.connection_tab, text='Connection')
-        tabs.add(self.account_tab, text='Account & memory cards (optional)')
+        tabs.add(self.account_tab, text='Account & memory cards')
         tabs.add(self.setup_tab, text='Setup')
         self.tabs = tabs
         tabs.bind('<<NotebookTabChanged>>', self._load_account_tab)
@@ -168,7 +168,10 @@ class BridgeApp:
             self.credential_fields[key] = value
         self.card_text = tk.StringVar(value='No memory cards selected.')
         ttk.Label(tab, textvariable=self.card_text, wraplength=770).pack(anchor='w', pady=8)
-        ttk.Button(tab, text='Open memory-card folder', command=self.open_cards).pack(anchor='w')
+        folders = ttk.Frame(tab)
+        folders.pack(anchor='w')
+        ttk.Button(folders, text='Open memory-card folder', command=self.open_cards).pack(side='left')
+        ttk.Button(folders, text='Open credentials folder', command=self.open_credentials).pack(side='left', padx=(8, 0))
 
     def _setup_widgets(self):
         tab = self.setup_tab
@@ -418,6 +421,9 @@ class BridgeApp:
                         messagebox.showerror('Memory cards', event['message'], parent=self.root)
             elif kind == 'setup':
                 self.setup_text.set(event['text'])
+            elif kind == 'credentials_folder_error':
+                if not self.closing:
+                    messagebox.showerror('Credentials folder', 'Could not open the credentials folder with the system file manager.', parent=self.root)
             elif kind == 'folder_error':
                 if not self.closing:
                     messagebox.showerror('Memory-card folder', 'Could not open the system file manager. Open generated-memcards in the application folder manually.', parent=self.root)
@@ -462,6 +468,18 @@ class BridgeApp:
                 open_directory(folder)
             except (OSError, RuntimeError):
                 self.events.put({'type': 'folder_error'})
+        threading.Thread(target=work, daemon=True).start()
+
+    def open_credentials(self):
+        folder = login.state_path().parent
+        if not folder.is_dir():
+            messagebox.showinfo('Credentials', 'No saved credentials folder exists yet. Create or import an account to save credentials.', parent=self.root)
+            return
+        def work():
+            try:
+                open_directory(folder)
+            except (OSError, RuntimeError):
+                self.events.put({'type': 'credentials_folder_error'})
         threading.Thread(target=work, daemon=True).start()
 
     def open_guide(self):

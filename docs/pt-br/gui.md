@@ -53,7 +53,7 @@ Em **Account & memory cards**, selecione uma conta salva, crie um novo usuário 
 
 Contas novas geram os dois cartões automaticamente. Ao importar, marque **Generate memory cards when importing this account** somente se precisar. O progresso existente é preservado conforme as [regras da conta](prerequisites.md). A janela exibe usuário, senha do jogo, código REO1 e caminhos dos cartões, com botões de cópia. Mantenha esses dados privados.
 
-Com **Saved account** selecionado, clique em **Create memory cards** para gerar os cartões dessa conta sem importá-la novamente. Isso funciona offline e preserva cartões e progresso existentes. **Open memory-card folder** abre o gerenciador de arquivos do sistema.
+Com **Saved account** selecionado, clique em **Create memory cards** para gerar os cartões dessa conta sem importá-la novamente. Isso funciona offline e preserva cartões e progresso existentes. **Open memory-card folder** abre o gerenciador de arquivos do sistema. **Open credentials folder** abre a pasta do arquivo de contas salvas (`identities.json`).
 
 ## 4. Conecte
 
