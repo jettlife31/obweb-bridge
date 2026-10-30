@@ -2,7 +2,17 @@
 
 [English](README.md) · [Português (Brasil)](README.PTBR.md) · [Español](README.ES.md)
 
-Uma ponte que conecta consoles e emuladores ao Outbreak Web pelo transporte Ethernet via WebSocket. Execute-a no Windows ou no Linux para usar o PCSX2 no mesmo computador, ou use o modo gateway para conectar Android, PS2 real e outros clientes pela LAN. O emulador não precisa ser modificado.
+Uma ponte que conecta consoles e emuladores ao Outbreak Web pelo transporte Ethernet via WebSocket. Execute-a no Windows ou no Linux para usar o PCSX2 no mesmo computador, ou execute o gateway no Linux nativo ou em um container Linux para conectar Android, PS2 real e outros clientes pela LAN. O emulador não precisa ser modificado.
+
+## Compatibilidade atual
+
+| Versão da ponte | PCSX2 no mesmo computador | Android / ARMSX2 pela LAN | PS2 real pela LAN | Outro PC pela LAN |
+|---|---|---|---|---|
+| Linux nativo | Sim | Sim | Sim | Sim |
+| Container no Linux | Não | Sim | Sim | Sim |
+| Windows nativo | Sim | Não | Não | Não |
+
+O container oferece apenas o gateway da LAN e exige Docker Engine no Linux. Docker Desktop no Windows não é suportado para esse modo.
 
 ## Índice dos guias
 

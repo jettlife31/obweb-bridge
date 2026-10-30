@@ -2,7 +2,17 @@
 
 [English](README.md) · [Português (Brasil)](README.PTBR.md) · [Español](README.ES.md)
 
-A bridge that connects consoles and emulators to Outbreak Web over its Ethernet WebSocket transport. Run it on Windows or Linux for PCSX2 on the same computer, or use LAN gateway mode for Android, a physical PS2 and other clients. The emulator does not need to be modified.
+A bridge that connects consoles and emulators to Outbreak Web over its Ethernet WebSocket transport. Run it on Windows or Linux for PCSX2 on the same computer, or run the LAN gateway on native Linux or in a Linux container for Android, a physical PS2 and other clients. The emulator does not need to be modified.
+
+## Current support
+
+| Bridge version | PCSX2 on the same computer | Android / ARMSX2 over LAN | Physical PS2 over LAN | Another PC over LAN |
+|---|---|---|---|---|
+| Native Linux | Yes | Yes | Yes | Yes |
+| Container on Linux | No | Yes | Yes | Yes |
+| Native Windows | Yes | No | No | No |
+
+The container provides only the LAN gateway and requires Docker Engine on Linux. Docker Desktop on Windows is not supported for this mode.
 
 ## Guide index
 
