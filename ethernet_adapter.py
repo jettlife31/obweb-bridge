@@ -127,6 +127,7 @@ class WindowsTap:
         self.handle = None
         self.tapctl = None
         self.restore_dhcp = False
+        self.dhcp_changed = False
 
     @staticmethod
     def powershell(script):
@@ -203,13 +204,11 @@ class WindowsTap:
             routes = self.powershell(f'@(Get-NetRoute -InterfaceIndex {self.index} -DestinationPrefix 0.0.0.0/0 -ErrorAction SilentlyContinue).Count')
             if routes != '0':
                 raise RuntimeError('The selected TAP adapter has a default route; use a dedicated adapter.')
-            addresses = self.powershell(f'@(Get-NetIPAddress -InterfaceIndex {self.index} -AddressFamily IPv4 -ErrorAction SilentlyContinue).Count')
-            if addresses == '0':
-                self.restore_dhcp = self.powershell(f'(Get-NetIPInterface -InterfaceIndex {self.index} -AddressFamily IPv4).Dhcp.ToString()') == 'Enabled'
-                self.address = marker(self.powershell('Get-NetIPAddress -AddressFamily IPv4 | Select-Object -ExpandProperty IPAddress'))
-                self.powershell(f'New-NetIPAddress -InterfaceIndex {self.index} -IPAddress {self.address} -PrefixLength 32 -SkipAsSource $true | Out-Null')
-                self.address_added = True
+            # Connect the virtual media before configuring the IP stack. A new
+            # TAP starts disconnected; its host marker is independent of DHCP
+            # traffic sent by the emulated console.
             self._open()
+            self._prepare_ipv4()
             return self
         except BaseException:
             try:
@@ -220,6 +219,19 @@ class WindowsTap:
                       else 'Windows TAP cleanup failed; check the dedicated adapter before retrying.',
                       file=sys.stderr)
             raise
+
+    def _prepare_ipv4(self):
+        addresses = self.powershell(f'@(Get-NetIPAddress -InterfaceIndex {self.index} -AddressFamily IPv4 -ErrorAction SilentlyContinue).Count')
+        if addresses != '0':
+            return
+        self.restore_dhcp = self.powershell(f'(Get-NetIPInterface -InterfaceIndex {self.index} -AddressFamily IPv4).Dhcp.ToString()') == 'Enabled'
+        if self.restore_dhcp:
+            # Use only the active store: no persistent host network settings.
+            self.powershell(f'Set-NetIPInterface -InterfaceIndex {self.index} -AddressFamily IPv4 -Dhcp Disabled -PolicyStore ActiveStore')
+            self.dhcp_changed = True
+        self.address = marker(self.powershell('Get-NetIPAddress -AddressFamily IPv4 | Select-Object -ExpandProperty IPAddress'))
+        self.powershell(f'New-NetIPAddress -InterfaceIndex {self.index} -AddressFamily IPv4 -IPAddress {self.address} -PrefixLength 32 -SkipAsSource $true -PolicyStore ActiveStore | Out-Null')
+        self.address_added = True
 
     def _open(self):
         from ctypes import wintypes as w
@@ -298,7 +310,12 @@ class WindowsTap:
                 result = subprocess.run([self.tapctl, 'delete', self.guid], capture_output=True)
                 if result.returncode:
                     print('Could not remove the temporary TAP adapter; remove obw-pcsx2 using tapctl.', file=sys.stderr)
-        elif self.address_added:
-            self.powershell(f'Remove-NetIPAddress -InterfaceIndex {self.index} -IPAddress {self.address} -Confirm:$false')
-            if self.restore_dhcp:
-                self.powershell(f'Set-NetIPInterface -InterfaceIndex {self.index} -AddressFamily IPv4 -Dhcp Enabled')
+        else:
+            try:
+                if self.address_added:
+                    self.powershell(f'Remove-NetIPAddress -InterfaceIndex {self.index} -IPAddress {self.address} -PolicyStore ActiveStore -Confirm:$false')
+                    self.address_added = False
+            finally:
+                if self.dhcp_changed:
+                    self.powershell(f'Set-NetIPInterface -InterfaceIndex {self.index} -AddressFamily IPv4 -Dhcp Enabled -PolicyStore ActiveStore')
+                    self.dhcp_changed = False
