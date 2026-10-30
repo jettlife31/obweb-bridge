@@ -58,7 +58,7 @@ El gateway LAN reenvía los dispositivos de la subred seleccionada; `OBWEB_CLIEN
 
 #### PCSX2 local — Windows
 
-Instala Python 3.10+ y Npcap. Descarga [OpenVPN Community Edition](https://openvpn.net/community/) (no OpenVPN Connect). En el instalador, selecciona tanto el componente de la aplicación OpenVPN (que proporciona `tapctl.exe`) como el controlador TAP-Windows6. Instalar solo el controlador puede dejar únicamente `tapinstall.exe`, que el bridge no utiliza. Extraer el MSI por sí solo no instala el controlador. Si el bridge no encuentra `tapctl.exe`, solicita la ruta del archivo o de la carpeta. Abre PowerShell como Administrador y ejecuta:
+Instala Python 3.10+ y descarga e instala [Npcap desde su sitio oficial](https://npcap.com/#download). Npcap se instala por separado de OpenVPN y es necesario para que la interfaz `obw-pcsx2` aparezca en la lista PCAP de PCSX2. Cierra PCSX2 antes de instalarlo; inicia el bridge, espera **READY** y vuelve a abrir PCSX2. Descarga [OpenVPN Community Edition](https://openvpn.net/community/) (no OpenVPN Connect). Abre el instalador y haz clic en **Install Now**. Abre PowerShell como Administrador y ejecuta:
 
 ```powershell
 .\start-ethernet.ps1
