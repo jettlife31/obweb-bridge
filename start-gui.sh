@@ -11,4 +11,4 @@ if ! "$BASE_DIR/.venv/bin/python" -c 'import tkinter' 2>/dev/null; then
   exit 1
 fi
 "$BASE_DIR/.venv/bin/python" -m pip install --quiet -r "$BASE_DIR/requirements.txt"
-exec "$BASE_DIR/.venv/bin/python" "$BASE_DIR/gui.py"
+exec "$BASE_DIR/.venv/bin/python" "$BASE_DIR/app/gui.py"

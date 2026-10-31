@@ -6,6 +6,10 @@ __pycache__
 tests
 xdelta
 README.md
-diagnose.py
+app/diagnose.py
 
 generated-memcards/
+
+# Optional native Windows drivers are not part of the Linux container.
+third_party/WinDivert/
+WinDivert/

@@ -13,7 +13,7 @@ import time
 
 from gui_transport import Channel
 
-ROOT = Path(__file__).resolve().parent
+from paths import APP_DIR, ROOT
 
 
 class WindowsProcess:
@@ -51,7 +51,7 @@ class WindowsProcess:
 
 
 def elevated_command(port, token):
-    command = [sys.executable, '-u', str(ROOT / 'gui_worker.py'), '--port', str(port), '--token', token]
+    command = [sys.executable, '-u', str(APP_DIR / 'gui_worker.py'), '--port', str(port), '--token', token]
     if sys.platform == 'linux' and os.geteuid() != 0:
         if not shutil.which('pkexec'):
             raise RuntimeError('Install polkit (pkexec) to authorize network setup from the desktop.')

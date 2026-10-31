@@ -116,9 +116,8 @@ class BridgeApp:
         self.ethernet_radio.pack(anchor='w', pady=(8, 3))
         self.gateway_radio = ttk.Radiobutton(tab, text='Another device on the LAN (Android, PS2 or another PC)', value='gateway', variable=self.mode, command=self._mode_changed)
         self.gateway_radio.pack(anchor='w')
-        if sys.platform != 'linux':
-            self.gateway_radio.configure(state='disabled')
-            ttk.Label(tab, text='LAN gateway hosting currently requires Linux. Local PCSX2 works on Windows and Linux.').pack(anchor='w', pady=5)
+        if sys.platform == 'win32':
+            ttk.Label(tab, text='Windows LAN gateway is experimental and requires Npcap + WinDivert x64.').pack(anchor='w', pady=5)
         self.lan_frame = ttk.Frame(tab)
         ttk.Label(self.lan_frame, text='Client LAN interface:').pack(anchor='w')
         line = ttk.Frame(self.lan_frame)
@@ -181,7 +180,8 @@ class BridgeApp:
         links = [('Python', 'https://www.python.org/downloads/')]
         if sys.platform == 'win32':
             links += [('Npcap (separate installation)', 'https://npcap.com/#download'),
-                      ('OpenVPN Community — not Connect', 'https://openvpn.net/community/')]
+                      ('OpenVPN Community — not Connect', 'https://openvpn.net/community/'),
+                      ('WinDivert — Windows LAN gateway only', 'https://github.com/basil00/WinDivert/releases/tag/v2.2.2')]
         for label, url in links:
             ttk.Button(tab, text=label, command=lambda u=url: webbrowser.open(u)).pack(anchor='w', pady=3)
         ttk.Button(tab, text='Check again', command=self.check_setup).pack(anchor='w', pady=10)
@@ -287,11 +287,15 @@ class BridgeApp:
     def refresh_interfaces(self):
         def work():
             try:
-                from container_interfaces import interfaces
-                choices = [(f'{name} — {ip}/{prefix}', name, ip) for name, addresses in interfaces() for ip, prefix in addresses]
+                if sys.platform == 'win32':
+                    from windows_lan import interfaces
+                    choices = [(f'{r["name"]} — {r["ip"]}/{r["prefix"]}', r['name'], r['ip']) for r in interfaces()]
+                else:
+                    from container_interfaces import interfaces
+                    choices = [(f'{name} — {ip}/{prefix}', name, ip) for name, addresses in interfaces() for ip, prefix in addresses]
                 self.events.put({'type': 'interfaces', 'choices': choices})
             except Exception:
-                self.events.put({'type': 'error', 'message': 'Could not list LAN interfaces. Install iproute2 and check the Setup tab.'})
+                self.events.put({'type': 'error', 'message': 'Could not list LAN interfaces. Check the active network connection and the Setup tab.'})
         threading.Thread(target=work, daemon=True).start()
 
     def check_setup(self):
@@ -303,6 +307,7 @@ class BridgeApp:
                 lines.append('Npcap: ' + ('installed' if (system / 'Npcap/wpcap.dll').is_file() else 'not found — install Npcap separately from the official link below'))
                 from ethernet_adapter import locate_tapctl
                 lines.append('OpenVPN tapctl: ' + ('found' if locate_tapctl() else 'not found automatically — install Community or locate tapctl.exe when asked'))
+                lines.append('Windows LAN gateway: experimental; WinDivert 2.2 x64 DLL + signed driver required. OpenVPN is needed only for local PCSX2.')
                 lines.append('Network setup requests Administrator approval when you press Start.')
             else:
                 for name in ('ip', 'nft', 'sysctl', 'pkexec'):
@@ -341,8 +346,6 @@ class BridgeApp:
         for widget in self.config_controls + self.account_radios:
             widget.configure(state='disabled' if running else 'normal')
         self.interface_box.configure(state='disabled' if running else 'readonly')
-        if sys.platform != 'linux':
-            self.gateway_radio.configure(state='disabled')
 
     def _account_controls(self, enabled):
         state = 'normal' if enabled else 'disabled'
@@ -383,7 +386,7 @@ class BridgeApp:
                 self.status.set(event['message'])
             elif kind == 'plan':
                 plan = event['plan']
-                self.details.set(f'Client gateway and DNS: {plan["linux_ip"]}\nClient LAN: {plan["client_network"]}')
+                self.details.set(f'Client gateway and DNS: {plan.get("lan_ip", plan.get("linux_ip"))}\nClient LAN: {plan["client_network"]}')
             elif kind in ('account', 'account_error'):
                 self.account_busy = False
                 self._account_controls(True)
@@ -428,7 +431,9 @@ class BridgeApp:
                 if not self.closing:
                     messagebox.showerror('Memory-card folder', 'Could not open the system file manager. Open generated-memcards in the application folder manually.', parent=self.root)
             elif kind == 'prompt':
-                path = '' if self.closing else filedialog.askopenfilename(parent=self.root, title='Locate OpenVPN tapctl.exe', filetypes=[('tapctl.exe', 'tapctl.exe')])
+                divert = 'WinDivert.dll' in event.get('text', '')
+                name = 'WinDivert.dll' if divert else 'tapctl.exe'
+                path = '' if self.closing else filedialog.askopenfilename(parent=self.root, title='Locate ' + name, filetypes=[(name, name)])
                 self.controller.send({'type': 'input', 'value': path})
             elif kind == 'error':
                 self.status.set('Setup failed')

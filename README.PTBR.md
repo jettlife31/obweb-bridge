@@ -2,7 +2,7 @@
 
 [English](README.md) · [Português (Brasil)](README.PTBR.md) · [Español](README.ES.md)
 
-Uma ponte que conecta consoles e emuladores ao Outbreak Web pelo transporte Ethernet via WebSocket. Execute-a no Windows ou no Linux para usar o PCSX2 no mesmo computador, ou execute o gateway no Linux nativo ou em um container Linux para conectar Android, PS2 real e outros clientes pela LAN. O emulador não precisa ser modificado.
+Uma ponte que conecta consoles e emuladores ao Outbreak Web pelo transporte Ethernet via WebSocket. Execute-a no Windows ou no Linux para usar o PCSX2 no mesmo computador ou conectar Android, PS2 real e outros clientes pela LAN. O gateway LAN do Windows é experimental; no Linux, o gateway também pode rodar em container. O emulador não precisa ser modificado.
 
 
 As ferramentas de conta e memory cards são opcionais. A ponte inicia de forma independente; sua conta é usada no login dentro do jogo.
@@ -13,7 +13,9 @@ As ferramentas de conta e memory cards são opcionais. A ponte inicia de forma i
 |---|---|---|---|---|
 | Linux nativo | Sim | Sim | Sim | Sim |
 | Container no Linux | Não | Sim | Sim | Sim |
-| Windows nativo | Sim | Não | Não | Não |
+| Windows nativo | Sim | Experimental | Experimental | Experimental |
+
+O gateway LAN nativo do Windows continua **experimental**; veja o [guia de LAN no Windows](docs/pt-br/windows-lan.md).
 
 O container oferece apenas o gateway da LAN e exige Docker Engine no Linux. Docker Desktop no Windows não é suportado para esse modo.
 
@@ -43,3 +45,5 @@ O gateway da LAN encaminha os dispositivos da sub-rede selecionada; `OBWEB_CLIEN
 - [Diagnóstico (Linux)](docs/pt-br/diagnostics.md)
 
 - [Outras formas de executar](docs/pt-br/terminal.md)
+
+- [Gateway LAN nativo no Windows — experimental](docs/pt-br/windows-lan.md)

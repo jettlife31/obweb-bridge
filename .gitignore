@@ -5,3 +5,7 @@ tests/
 *.env
 
 generated-memcards/
+
+# Optional official WinDivert binaries are installed locally, never redistributed.
+third_party/WinDivert/
+WinDivert/

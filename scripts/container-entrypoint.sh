@@ -2,7 +2,7 @@
 set -eu
 
 if [ "${1:-}" = '--list-interfaces' ]; then
-  exec python /app/container_interfaces.py --list-interfaces
+  exec python /app/app/container_interfaces.py --list-interfaces
 fi
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -11,11 +11,11 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 if [ "${1:-}" = '--cleanup' ]; then
-  exec python /app/gateway.py --cleanup
+  exec python /app/app/gateway.py --cleanup
 fi
 
 # Discovery is read-only and runs before credentials or persistent state setup.
-python /app/container_interfaces.py --check-network-admin
+python /app/app/container_interfaces.py --check-network-admin
 
 if [ -n "${OBWEB_REO_CODE:-}" ] && [ -z "${OBWEB_USERNAME:-}" ]; then
   echo 'Set OBWEB_USERNAME when importing an OBWEB_REO_CODE.' >&2
@@ -42,10 +42,10 @@ if [ -n "${OBWEB_CLIENT_IP:-}" ]; then set -- "$@" --client-ip "$OBWEB_CLIENT_IP
 if [ -n "${OBWEB_WSS_URL:-}" ]; then set -- "$@" --url "$OBWEB_WSS_URL"; fi
 if [ -n "${OBWEB_WSS_ORIGIN:-}" ]; then set -- "$@" --origin "$OBWEB_WSS_ORIGIN"; fi
 
-python /app/gateway.py "$@"
+python /app/app/gateway.py "$@"
 runuser -u obweb -- env HOME=/home/obweb XDG_STATE_HOME="$STATE_HOME" \
   OBWEB_RUN_MODE=container \
   OBWEB_USERNAME="${OBWEB_USERNAME:-}" OBWEB_REO_CODE="${OBWEB_REO_CODE:-}" \
-  python /app/login_web.py
+  python /app/app/login_web.py
 echo 'Forwarded client IPv4 traffic will use WSS. Press Ctrl+C to stop.'
-exec python /app/gateway.py "$@" --run
+exec python /app/app/gateway.py "$@" --run

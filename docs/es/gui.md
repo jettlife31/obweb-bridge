@@ -4,6 +4,8 @@
 
 La GUI es la opción predeterminada para Windows y Linux nativos. La misma ventana Python controla ambos sistemas; los iniciadores de terminal siguen en [Otras formas de ejecutar](terminal.md). El contenedor no utiliza la GUI.
 
+
+Windows también ofrece el modo experimental **Another device on the LAN** con Npcap + WinDivert; sigue la [guía LAN en Windows](windows-lan.md). Los modos LAN en Linux y Ethernet local conservan su configuración.
 ## 1. Instala los requisitos
 
 Completa los [requisitos de parche del juego y cuenta](prerequisites.md).
@@ -60,7 +62,7 @@ Con **Saved account** seleccionado, pulsa **Create memory cards** para generar l
 En **Connection**, elige:
 
 - **PCSX2 on this computer:** disponible en Windows y Linux. Consulta [Windows](windows.md) o [Linux](linux.md) para configurar el emulador: **PCAP Switched**, `obw-pcsx2`, interceptación DHCP desactivada, DNS automático y un perfil automático nuevo dentro del juego.
-- **Another device on the LAN:** alojar el gateway actualmente requiere Linux. Selecciona la interfaz conectada a los clientes; la ventana muestra la IP del gateway/DNS tras iniciar. Configura [Android](android.md), [PS2 real](ps2.md) u otro cliente LAN según la [guía del gateway](lan.md).
+- **Another device on the LAN:** el host Linux está validado; el host Windows experimental usa la [guía LAN en Windows](windows-lan.md). Selecciona la interfaz conectada a los clientes; la ventana muestra la IP del gateway/DNS tras iniciar. Configura [Android](android.md), [PS2 real](ps2.md) u otro cliente LAN según la [guía del gateway](lan.md).
 
 En Windows, el nombre de una TAP dedicada existente es opcional. Si no se encuentra `tapctl.exe`, una ventana permite localizar el archivo.
 
@@ -70,4 +72,4 @@ Pulsa **Start bridge** y acepta la solicitud del sistema. Espera **Ready** antes
 
 **Stop** y cerrar la ventana solicitan la misma limpieza de red. La ventana espera a que termine el auxiliar; no fuerces el cierre durante la limpieza. No hay apagado por duración o inactividad.
 
-El estado de conexión y los contadores aparecen en el área de actividad. **Copy diagnostic report** copia información de la plataforma y mensajes de actividad, excluyendo los campos de la cuenta. Las partidas y la elevación en Windows aún necesitan validación real; se comprobaron la ventana Linux y la limpieza del auxiliar en un entorno aislado.
+El estado de conexión y los contadores aparecen en el área de actividad. **Copy diagnostic report** copia información de la plataforma y mensajes de actividad, excluyendo los campos de la cuenta.
