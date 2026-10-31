@@ -131,7 +131,13 @@ async def run(adapter):
         except (WebSocketException, OSError) as exc:
             raise Reconnect('WSS transport interrupted') from exc
 
-    await serve(session, log)
+    try:
+        await serve(session, log)
+    finally:
+        stop_io = getattr(adapter, 'stop_io', None)
+        if stop_io is not None:
+            log('Cancelling local Ethernet I/O before waiting for network threads.')
+            stop_io()
 
 
 def main():
