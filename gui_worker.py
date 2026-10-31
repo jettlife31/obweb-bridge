@@ -96,8 +96,18 @@ def run_worker(channel, config):
             with adapter:
                 asyncio.run(until_stopped(ethernet.run(adapter), stopped))
         else:
+            if sys.platform == 'win32':
+                from windows_lan import inventory
+                import windows_gateway
+                interface = config.get('interface')
+                if not isinstance(interface, str) or not 1 <= len(interface) <= 256:
+                    raise ValueError('Select a Windows LAN interface')
+                plan = inventory(interface, config.get('lan_ip'))
+                channel.send({'type': 'plan', 'plan': {k: plan[k] for k in ('lan_ip', 'client_network')}})
+                asyncio.run(until_stopped(windows_gateway.run(plan), stopped))
+                return
             if sys.platform != 'linux':
-                raise ValueError('LAN gateway mode requires Linux')
+                raise ValueError('LAN gateway mode requires Windows or Linux')
             interface = config.get('interface', '')
             if not isinstance(interface, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,15}', interface):
                 raise ValueError('Select a supported LAN interface')

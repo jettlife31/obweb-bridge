@@ -4,6 +4,8 @@
 
 Antes de empezar, completa los [requisitos previos](prerequisites.md). Ejecuta los comandos desde la carpeta de la aplicación.
 
+
+Para el backend experimental con host Windows, sigue [Gateway LAN nativo en Windows](windows-lan.md). Las instrucciones Linux siguientes siguen siendo válidas.
 ## 1. Inicia un gateway LAN
 
 Alojar el gateway LAN con la GUI requiere Linux. Instala las dependencias y ejecuta la GUI como usuario normal:

@@ -14,6 +14,9 @@ Account and memory-card tools are optional. The bridge starts independently; you
 | Native Linux | Yes | Yes | Yes | Yes |
 | Container on Linux | No | Yes | Yes | Yes |
 | Native Windows | Yes | No | No | No |
+| Windows LAN (experimental) | — | Pending validation | Pending validation | Pending validation |
+
+The experimental Windows LAN backend is available on this branch; see the [native Windows LAN guide](docs/en/windows-lan.md). It still requires Windows hardware/gameplay validation.
 
 The container provides only the LAN gateway and requires Docker Engine on Linux. Docker Desktop on Windows is not supported for this mode.
 
@@ -43,3 +46,5 @@ The LAN gateway forwards devices in the selected subnet; setting `OBWEB_CLIENT_I
 - [Diagnostics (Linux)](docs/en/diagnostics.md)
 
 - [Other ways to run](docs/en/terminal.md)
+
+- [Experimental native Windows LAN gateway](docs/en/windows-lan.md)

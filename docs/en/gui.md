@@ -4,6 +4,8 @@
 
 The GUI is the default for native Windows and Linux. The same Python window controls both systems; terminal launchers remain under [Other ways to run](terminal.md). The container does not use the GUI.
 
+
+On this experimental branch, Windows also offers **Another device on the LAN** with Npcap + WinDivert; use the [Windows LAN guide](windows-lan.md). The Linux LAN and local Ethernet modes retain their existing setup.
 ## 1. Install prerequisites
 
 Complete the [game patch and account prerequisites](prerequisites.md).
@@ -60,7 +62,7 @@ With **Saved account** selected, click **Create memory cards** to generate cards
 In **Connection**, choose:
 
 - **PCSX2 on this computer:** available on Windows and Linux. Use the [Windows](windows.md) or [Linux](linux.md) guide for the emulator settings: **PCAP Switched**, `obw-pcsx2`, DHCP interception off, automatic DNS and a new automatic in-game profile.
-- **Another device on the LAN:** hosting currently requires Linux. Select the interface connected to the clients; the window shows the gateway/DNS IP after startup. Configure [Android](android.md), a [physical PS2](ps2.md) or another LAN client following the [gateway guide](lan.md).
+- **Another device on the LAN:** Linux hosting is validated; experimental Windows hosting uses the [Windows LAN guide](windows-lan.md). Select the interface connected to the clients; the window shows the gateway/DNS IP after startup. Configure [Android](android.md), a [physical PS2](ps2.md) or another LAN client following the [gateway guide](lan.md).
 
 On Windows, an existing dedicated TAP name is optional. If `tapctl.exe` cannot be found, a file picker asks for it.
 

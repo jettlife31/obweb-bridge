@@ -14,6 +14,9 @@ Las herramientas de cuenta y memory cards son opcionales. El bridge inicia de fo
 | Linux nativo | Sí | Sí | Sí | Sí |
 | Contenedor en Linux | No | Sí | Sí | Sí |
 | Windows nativo | Sí | No | No | No |
+| LAN Windows (experimental) | — | Validación pendiente | Validación pendiente | Validación pendiente |
+
+El backend LAN experimental para Windows está disponible en esta branch; consulta la [guía LAN nativa en Windows](docs/es/windows-lan.md). Todavía requiere validación de hardware y partidas en Windows.
 
 El contenedor solo ofrece el gateway LAN y requiere Docker Engine en Linux. Docker Desktop en Windows no está soportado para este modo.
 
@@ -43,3 +46,5 @@ El gateway LAN reenvía los dispositivos de la subred seleccionada; `OBWEB_CLIEN
 - [Diagnóstico (Linux)](docs/es/diagnostics.md)
 
 - [Otras formas de ejecutar](docs/es/terminal.md)
+
+- [Gateway LAN nativo en Windows — experimental](docs/es/windows-lan.md)

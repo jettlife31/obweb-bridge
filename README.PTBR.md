@@ -14,6 +14,9 @@ As ferramentas de conta e memory cards são opcionais. A ponte inicia de forma i
 | Linux nativo | Sim | Sim | Sim | Sim |
 | Container no Linux | Não | Sim | Sim | Sim |
 | Windows nativo | Sim | Não | Não | Não |
+| LAN Windows (experimental) | — | Validação pendente | Validação pendente | Validação pendente |
+
+O backend LAN experimental para Windows está disponível nesta branch; veja o [guia de LAN nativa no Windows](docs/pt-br/windows-lan.md). Ainda precisa de validação de hardware e partidas no Windows.
 
 O container oferece apenas o gateway da LAN e exige Docker Engine no Linux. Docker Desktop no Windows não é suportado para esse modo.
 
@@ -43,3 +46,5 @@ O gateway da LAN encaminha os dispositivos da sub-rede selecionada; `OBWEB_CLIEN
 - [Diagnóstico (Linux)](docs/pt-br/diagnostics.md)
 
 - [Outras formas de executar](docs/pt-br/terminal.md)
+
+- [Gateway LAN nativo no Windows — experimental](docs/pt-br/windows-lan.md)

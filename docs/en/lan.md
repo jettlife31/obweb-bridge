@@ -4,6 +4,8 @@
 
 Before starting, complete the [prerequisites](prerequisites.md). Run commands from the application folder.
 
+
+For the experimental Windows host backend, follow [Native Windows LAN gateway](windows-lan.md). The Linux instructions below remain unchanged.
 ## 1. Start a LAN gateway
 
 The GUI LAN gateway host requires Linux. Install the dependencies, then run the GUI as your regular user:
