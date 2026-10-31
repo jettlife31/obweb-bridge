@@ -65,6 +65,7 @@ def run_worker(channel, config):
                 message = channel.receive()
                 if message['type'] == 'stop':
                     stopped.set()
+                    channel.send({'type': 'log', 'line': 'Stop received by the network worker.'})
                 elif message['type'] == 'input' and isinstance(message.get('value'), str):
                     try:
                         responses.put_nowait(message['value'][:4096])
@@ -95,6 +96,8 @@ def run_worker(channel, config):
             adapter = WindowsTap(name) if sys.platform == 'win32' else LinuxTap()
             with adapter:
                 asyncio.run(until_stopped(ethernet.run(adapter), stopped))
+                ethernet.log('Ethernet network threads stopped; cleaning up the adapter.')
+            ethernet.log('Ethernet adapter cleanup complete.')
         else:
             if sys.platform == 'win32':
                 from windows_lan import inventory

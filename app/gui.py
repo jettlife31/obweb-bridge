@@ -46,6 +46,7 @@ class BridgeApp:
         self.account_busy = False
         self.accounts_loaded = False
         self.closing = False
+        self.stopping = False
         self.history = collections.deque(maxlen=500)
         self.interface_options = {}
         self.status = tk.StringVar(value='Stopped')
@@ -329,12 +330,15 @@ class BridgeApp:
             config['interface'], config['lan_ip'] = choice
         elif sys.platform == 'win32':
             config['adapter'] = self.adapter.get().strip()
+        self.stopping = False
         self._controls(True)
         self.status.set('Starting…')
         self._append('Starting network setup. Account credentials stay in this window.')
         self.controller.start(config)
 
     def stop(self):
+        self.stopping = True
+        self._append('Stop requested; waiting for network cleanup.')
         self.status.set('Stopping and cleaning up…')
         self.stop_button.configure(state='disabled')
         self.controller.stop()
@@ -378,12 +382,18 @@ class BridgeApp:
             if kind == 'log':
                 line = event['line']
                 self._append(line)
+                if self.stopping or self.closing:
+                    continue
                 if 'READY:' in line:
                     self.status.set('Ready')
+                    if self.controller.active:
+                        self.start_button.configure(state='disabled')
+                        self.stop_button.configure(state='normal')
                 elif 'Tunnel offline;' in line:
                     self.status.set('Reconnecting…')
             elif kind == 'status':
-                self.status.set(event['message'])
+                if not self.stopping and not self.closing:
+                    self.status.set(event['message'])
             elif kind == 'plan':
                 plan = event['plan']
                 self.details.set(f'Client gateway and DNS: {plan.get("lan_ip", plan.get("linux_ip"))}\nClient LAN: {plan["client_network"]}')
@@ -441,8 +451,9 @@ class BridgeApp:
                 if not self.closing:
                     messagebox.showerror('Bridge', event['message'], parent=self.root)
             elif kind == 'stopped':
-                self.status.set('Stopped')
+                self.status.set('Finishing network cleanup…')
             elif kind == 'finished':
+                self.stopping = False
                 self._controls(False)
                 if self.status.get() not in ('Setup failed',):
                     self.status.set('Stopped')

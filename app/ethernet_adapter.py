@@ -1,5 +1,7 @@
 """Local Ethernet adapters. No host default routes, DNS or forwarding changes."""
 import ctypes
+from datetime import datetime
+import errno
 import json
 import os
 from pathlib import Path
@@ -9,6 +11,8 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
+from types import SimpleNamespace
 
 
 def openvpn_install_directories():
@@ -136,6 +140,10 @@ class WindowsTap:
         self.tapctl = None
         self.restore_dhcp = False
         self.dhcp_changed = False
+        self.stopping = threading.Event()
+        self._io_lock = threading.Lock()
+        self._read_lock = threading.Lock()
+        self._read_pending = None
 
     @staticmethod
     def powershell(script):
@@ -274,16 +282,20 @@ class WindowsTap:
         ov = self.Overlapped(hEvent=event)
         count = w.DWORD()
         try:
-            if operation == 'control':
-                # TAP_WIN_IOCTL_SET_MEDIA_STATUS, function 6, METHOD_BUFFERED.
-                ok = self.kernel.DeviceIoControl(self.handle, (0x22 << 16) | (6 << 2), ctypes.byref(buffer), size, ctypes.byref(buffer), size, ctypes.byref(count), ctypes.byref(ov))
-            else:
-                function = self.kernel.ReadFile if operation == 'read' else self.kernel.WriteFile
-                ok = function(self.handle, buffer, size, ctypes.byref(count), ctypes.byref(ov))
+            with self._io_lock:
+                if self.stopping.is_set():
+                    raise OSError(errno.ECANCELED, 'TAP I/O is stopping')
+                if operation == 'control':
+                    # TAP_WIN_IOCTL_SET_MEDIA_STATUS, function 6, METHOD_BUFFERED.
+                    ok = self.kernel.DeviceIoControl(self.handle, (0x22 << 16) | (6 << 2), ctypes.byref(buffer), size, ctypes.byref(buffer), size, ctypes.byref(count), ctypes.byref(ov))
+                else:
+                    function = self.kernel.ReadFile if operation == 'read' else self.kernel.WriteFile
+                    ok = function(self.handle, buffer, size, ctypes.byref(count), ctypes.byref(ov))
+                error = 0 if ok else ctypes.get_last_error()
             if ok:
                 return count.value
-            if ctypes.get_last_error() != 997:
-                raise ctypes.WinError(ctypes.get_last_error())
+            if error != 997:
+                raise ctypes.WinError(error)
             if self.kernel.WaitForSingleObject(event, timeout) != 0:
                 self.kernel.CancelIoEx(self.handle, ctypes.byref(ov))
                 self.kernel.GetOverlappedResult(self.handle, ctypes.byref(ov), ctypes.byref(count), True)
@@ -294,13 +306,67 @@ class WindowsTap:
         finally:
             self.kernel.CloseHandle(event)
 
+    def _clear_read(self):
+        request, self._read_pending = self._read_pending, None
+        if request is not None:
+            self.kernel.CloseHandle(request.ov.hEvent)
+
     def read(self):
-        buffer = ctypes.create_string_buffer(65536)
-        try:
-            size = self._operation('read', buffer, len(buffer), 250)
-            return buffer.raw[:size]
-        except TimeoutError:
-            return None
+        from ctypes import wintypes as w
+        # Keep an idle OVERLAPPED read alive across polls. Repeatedly cancelling
+        # it after 250ms forced every quiet read to wait for driver cancellation.
+        # Buffers/events remain owned until completion has been acknowledged.
+        with self._read_lock:
+            if self.stopping.is_set():
+                return None
+            request = self._read_pending
+            if request is None:
+                buffer = ctypes.create_string_buffer(65536)
+                event = self.kernel.CreateEventW(None, True, False, None)
+                if not event:
+                    raise ctypes.WinError(ctypes.get_last_error())
+                request = SimpleNamespace(buffer=buffer, ov=self.Overlapped(hEvent=event), count=w.DWORD())
+                with self._io_lock:
+                    if self.stopping.is_set():
+                        self.kernel.CloseHandle(event)
+                        return None
+                    self._read_pending = request
+                    ok = self.kernel.ReadFile(self.handle, buffer, len(buffer), ctypes.byref(request.count), ctypes.byref(request.ov))
+                    error = 0 if ok else ctypes.get_last_error()
+                if ok:
+                    self._clear_read()
+                    return request.buffer.raw[:request.count.value]
+                if error != 997:  # ERROR_IO_PENDING
+                    self._clear_read()
+                    raise ctypes.WinError(error)
+            status = self.kernel.WaitForSingleObject(request.ov.hEvent, 250)
+            if status == 258:  # WAIT_TIMEOUT: poll again, without cancelling I/O.
+                return None
+            if status != 0:
+                # Retain the request until cleanup has cancelled and drained it.
+                raise OSError('Could not wait for the TAP read event.')
+            ok = self.kernel.GetOverlappedResult(self.handle, ctypes.byref(request.ov), ctypes.byref(request.count), False)
+            error = 0 if ok else ctypes.get_last_error()
+            if error == 996:  # ERROR_IO_INCOMPLETE: do not release the buffer.
+                return None
+            self._clear_read()
+            if error == 995 and self.stopping.is_set():
+                return None
+            if not ok:
+                raise ctypes.WinError(error)
+            return request.buffer.raw[:request.count.value]
+
+    def stop_io(self):
+        # Called BEFORE asyncio.run joins executor threads. Closing the adapter
+        # only in __exit__ is too late: that runs after the executor has joined.
+        with self._io_lock:
+            self.stopping.set()
+            if self.handle is not None:
+                self.kernel.CancelIoEx(self.handle, None)
+
+    @staticmethod
+    def _cleanup_log(message):
+        print(f'[{datetime.now().astimezone().isoformat(timespec="seconds")}] {message}', flush=True)
 
     def write(self, frame):
         buffer = ctypes.create_string_buffer(frame)
@@ -308,13 +374,20 @@ class WindowsTap:
             raise RuntimeError('Incomplete TAP-Windows write')
 
     def __exit__(self, *args):
-        if self.handle is not None:
-            self.kernel.CancelIoEx(self.handle, None)
-            self.kernel.CloseHandle(self.handle)
-            self.handle = None
+        self.stop_io()
+        with self._read_lock:
+            if self.handle is not None:
+                if self._read_pending is not None:
+                    self._cleanup_log('Waiting for the Windows TAP driver to acknowledge read cancellation.')
+                    request = self._read_pending
+                    self.kernel.GetOverlappedResult(self.handle, ctypes.byref(request.ov), ctypes.byref(request.count), True)
+                    self._clear_read()
+                self.kernel.CloseHandle(self.handle)
+                self.handle = None
         if self.created:
             # tapctl accepts the interface GUID, not an interpolated shell command.
             if hasattr(self, 'guid'):
+                self._cleanup_log('Removing the temporary Windows TAP adapter.')
                 result = subprocess.run([self.tapctl, 'delete', self.guid], capture_output=True)
                 if result.returncode:
                     print('Could not remove the temporary TAP adapter; remove obw-pcsx2 using tapctl.', file=sys.stderr)
