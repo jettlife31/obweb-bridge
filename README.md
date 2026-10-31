@@ -9,11 +9,13 @@ Account and memory-card tools are optional. The bridge starts independently; you
 
 ## Current support
 
-| Bridge version | PCSX2 on the same computer | Android / ARMSX2 over LAN | Physical PS2 over LAN | Another PC over LAN |
-|---|---|---|---|---|
-| Native Linux | Yes | Yes | Yes | Yes |
-| Container on Linux | No | Yes | Yes | Yes |
-| Native Windows | Yes | Experimental | Experimental | Experimental |
+| Bridge version | Emulator on the same computer | Physical PS2 over LAN | Another device* over LAN |
+|---|---|---|---|
+| Native Linux | Yes | Yes | Yes |
+| Container on Linux | No | Yes | Yes |
+| Native Windows | Yes | Experimental | Experimental |
+
+*Tested with PC (PCSX2 on Windows and Linux), Android (ARMSX2), and a physical PS2 console.
 
 The native Windows LAN gateway remains **experimental**; see the [Windows LAN guide](docs/en/windows-lan.md).
 

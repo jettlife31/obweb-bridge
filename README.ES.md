@@ -9,11 +9,13 @@ Las herramientas de cuenta y memory cards son opcionales. El bridge inicia de fo
 
 ## Compatibilidad actual
 
-| Versión del bridge | PCSX2 en el mismo equipo | Android / ARMSX2 por LAN | PS2 real por LAN | Otro PC por LAN |
-|---|---|---|---|---|
-| Linux nativo | Sí | Sí | Sí | Sí |
-| Contenedor en Linux | No | Sí | Sí | Sí |
-| Windows nativo | Sí | Experimental | Experimental | Experimental |
+| Versión del bridge | Emulador en el mismo equipo | PS2 real por LAN | Otro dispositivo* por LAN |
+|---|---|---|---|
+| Linux nativo | Sí | Sí | Sí |
+| Contenedor en Linux | No | Sí | Sí |
+| Windows nativo | Sí | Experimental | Experimental |
+
+*Probado con PC (PCSX2 en Windows y Linux), Android (ARMSX2) y una consola PS2 real.
 
 El gateway LAN nativo de Windows sigue siendo **experimental**; consulta la [guía LAN en Windows](docs/es/windows-lan.md).
 
