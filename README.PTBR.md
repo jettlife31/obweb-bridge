@@ -9,11 +9,11 @@ As ferramentas de conta e memory cards são opcionais. A ponte inicia de forma i
 
 ## Compatibilidade atual
 
-| Versão da ponte | Emulador no mesmo computador | PS2 real pela LAN | Outro dispositivo* pela LAN |
-|---|---|---|---|
-| Linux nativo | Sim | Sim | Sim |
-| Container no Linux | Não | Sim | Sim |
-| Windows nativo | Sim | Experimental | Experimental |
+| Versão da ponte | Emulador no mesmo computador | Outro dispositivo* pela LAN |
+| --- | --- | --- |
+| Linux nativo | Sim | Sim |
+| Container no Linux | Não | Sim |
+| Windows nativo | Sim | Experimental |
 
 *Testado com PC (PCSX2 no Windows e Linux), Android (ARMSX2) e console PS2 real.
 

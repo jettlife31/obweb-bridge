@@ -9,11 +9,11 @@ Las herramientas de cuenta y memory cards son opcionales. El bridge inicia de fo
 
 ## Compatibilidad actual
 
-| Versión del bridge | Emulador en el mismo equipo | PS2 real por LAN | Otro dispositivo* por LAN |
-|---|---|---|---|
-| Linux nativo | Sí | Sí | Sí |
-| Contenedor en Linux | No | Sí | Sí |
-| Windows nativo | Sí | Experimental | Experimental |
+| Versión del bridge | Emulador en el mismo equipo | Otro dispositivo* por LAN |
+| --- | --- | --- |
+| Linux nativo | Sí | Sí |
+| Contenedor en Linux | No | Sí |
+| Windows nativo | Sí | Experimental |
 
 *Probado con PC (PCSX2 en Windows y Linux), Android (ARMSX2) y una consola PS2 real.
 

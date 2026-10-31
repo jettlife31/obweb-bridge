@@ -9,11 +9,11 @@ Account and memory-card tools are optional. The bridge starts independently; you
 
 ## Current support
 
-| Bridge version | Emulator on the same computer | Physical PS2 over LAN | Another device* over LAN |
-|---|---|---|---|
-| Native Linux | Yes | Yes | Yes |
-| Container on Linux | No | Yes | Yes |
-| Native Windows | Yes | Experimental | Experimental |
+| Bridge version | Emulator on the same computer | Another device* over LAN |
+| --- | --- | --- |
+| Native Linux | Yes | Yes |
+| Container on Linux | No | Yes |
+| Native Windows | Yes | Experimental |
 
 *Tested with PC (PCSX2 on Windows and Linux), Android (ARMSX2), and a physical PS2 console.
 
