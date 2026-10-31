@@ -69,6 +69,12 @@ def require_network_admin():
             raise LocalNetworkError('Container network sysctls are read-only. Add '
                                     '--mount type=bind,src=/proc/sys/net,dst=/proc/sys/net '
                                     'to the rootful container run command.') from None
+        if error.errno in (errno.EACCES, errno.EPERM):
+            raise LocalNetworkError(
+                f'Cannot access the required network sysctl (OS error {error.errno}: permission denied). '
+                'A container security policy may be blocking access. With the writable /proc/sys/net '
+                'mount already present, test --security-opt apparmor=unconfined for this container only. '
+                'This is separate from seccomp=unconfined; see the container guide.') from None
         raise LocalNetworkError(f'Cannot access the required network sysctl (OS error {error.errno}).') from None
     else:
         os.close(fd)

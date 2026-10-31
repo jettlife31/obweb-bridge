@@ -10,6 +10,8 @@ El contenedor ofrece solo el modo gateway LAN y requiere Docker Engine en Linux 
 
 El gateway LAN requiere un runtime **rootful**: un daemon Docker con privilegios de root o **`sudo podman run`**. Podman/Docker rootless no pueden administrar la red del host incluso con `--cap-add`. Para Podman, sustituye `docker run` abajo por `sudo podman run`. El montaje bind de `/proc/sys/net` permite los ajustes de red necesarios para el bridge; no cambia la ruta predeterminada del equipo. El inicio comprueba los permisos antes de preparar cuentas o modificar la red.
 
+Si el inicio indica **OS error 13 (permiso denegado)** en sysctl incluso con ese montaje, una política de seguridad del contenedor puede estar bloqueando el acceso. Para diagnosticarlo, añade `--security-opt apparmor=unconfined` al mismo comando. Esto desactiva el confinamiento AppArmor solo para ese contenedor; no desactiva AppArmor en el equipo. Es independiente de `seccomp=unconfined`. Si el error persiste, consulta los registros de seguridad del host en lugar de añadir `--privileged`.
+
 El contenedor requiere `OBWEB_LAN_INTERFACE` (la interfaz conectada a la LAN del cliente). La preparación de cuenta es opcional: omite `OBWEB_USERNAME` y `OBWEB_REO_CODE` para iniciar solo el bridge. `OBWEB_RUN_MODE` es interno y se configura automáticamente. En Compose, pasa las mismas variables en `environment:`.
 
 Antes de ejecutar la imagen por primera vez, identifica la interfaz que vas a usar mediante el siguiente comando para listar las interfaces disponibles:

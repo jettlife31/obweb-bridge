@@ -10,6 +10,8 @@ O container oferece somente o modo gateway da LAN e exige Docker Engine no Linux
 
 O gateway da LAN exige execução **rootful**: daemon Docker com privilégios de root ou **`sudo podman run`**. Podman/Docker rootless não conseguem administrar a rede do host mesmo com `--cap-add`. Para Podman, troque `docker run` abaixo por `sudo podman run`. O bind mount de `/proc/sys/net` permite os ajustes de rede necessários à ponte; ele não altera a rota padrão do computador. A inicialização verifica as permissões antes de preparar contas ou alterar a rede.
 
+Se a inicialização informar **OS error 13 (permissão negada)** no sysctl mesmo com essa montagem, uma política de segurança do container pode estar bloqueando o acesso. Para diagnosticar, adicione `--security-opt apparmor=unconfined` ao mesmo comando. Isso desativa o confinamento AppArmor somente desse container; não desativa o AppArmor do computador. Essa opção é independente de `seccomp=unconfined`. Se o erro continuar, consulte os logs de segurança do host em vez de adicionar `--privileged`.
+
 O container exige `OBWEB_LAN_INTERFACE` (a interface conectada à LAN do cliente). A preparação da conta é opcional: omita `OBWEB_USERNAME` e `OBWEB_REO_CODE` para iniciar somente a ponte. `OBWEB_RUN_MODE` é interno e configurado automaticamente. No Compose, informe as mesmas variáveis em `environment:`.
 
 Antes de rodar a imagem pela primeira vez, é necessário identificar a interface a ser usada, para isso, execute o comando abaixo para listar as interfaces disponíveis:
