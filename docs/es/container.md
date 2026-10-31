@@ -8,6 +8,8 @@ Antes de empezar, completa los [requisitos previos](prerequisites.md). Ejecuta l
 
 El contenedor ofrece solo el modo gateway LAN y requiere Docker Engine en Linux con `--network host`. Para PCSX2 en el mismo equipo, usa la [interfaz gráfica](gui.md). El contenedor sigue ejecutándose por terminal.
 
+El gateway LAN requiere un runtime **rootful**: un daemon Docker con privilegios de root o **`sudo podman run`**. Podman/Docker rootless no pueden administrar la red del host incluso con `--cap-add`. Para Podman, sustituye `docker run` abajo por `sudo podman run`. El montaje bind de `/proc/sys/net` permite los ajustes de red necesarios para el bridge; no cambia la ruta predeterminada del equipo. El inicio comprueba los permisos antes de preparar cuentas o modificar la red.
+
 El contenedor requiere `OBWEB_LAN_INTERFACE` (la interfaz conectada a la LAN del cliente). La preparación de cuenta es opcional: omite `OBWEB_USERNAME` y `OBWEB_REO_CODE` para iniciar solo el bridge. `OBWEB_RUN_MODE` es interno y se configura automáticamente. En Compose, pasa las mismas variables en `environment:`.
 
 Antes de ejecutar la imagen por primera vez, identifica la interfaz que vas a usar mediante el siguiente comando para listar las interfaces disponibles:
@@ -33,6 +35,7 @@ Docker crea el volumen con nombre en el primer uso y lo conserva entre ejecucion
 docker run --rm --network host \
   --cap-add NET_ADMIN --cap-add SYS_ADMIN \
   --device /dev/net/tun:/dev/net/tun \
+  --mount type=bind,src=/proc/sys/net,dst=/proc/sys/net \
   --security-opt seccomp=unconfined \
   --mount type=volume,src=obweb-bridge-data,dst=/var/lib/obweb-bridge \
   -e OBWEB_LAN_INTERFACE=enp3s0 \

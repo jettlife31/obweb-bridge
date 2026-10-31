@@ -15,7 +15,7 @@ if [ "${1:-}" = '--cleanup' ]; then
 fi
 
 # Discovery is read-only and runs before credentials or persistent state setup.
-python /app/container_interfaces.py
+python /app/container_interfaces.py --check-network-admin
 
 if [ -n "${OBWEB_REO_CODE:-}" ] && [ -z "${OBWEB_USERNAME:-}" ]; then
   echo 'Set OBWEB_USERNAME when importing an OBWEB_REO_CODE.' >&2

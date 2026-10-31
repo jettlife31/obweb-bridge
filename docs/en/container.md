@@ -8,6 +8,8 @@ Before starting, complete the [prerequisites](prerequisites.md). Run commands fr
 
 The container provides only the LAN gateway mode and requires Docker Engine on Linux with `--network host`. For PCSX2 on the same computer, use the [desktop GUI](gui.md). The container remains a terminal-only workflow.
 
+The LAN gateway requires a **rootful** runtime: a rootful Docker daemon, or **`sudo podman run`**. Rootless Podman/Docker cannot administer the host network even with `--cap-add`. For Podman, replace `docker run` below with `sudo podman run`. The `/proc/sys/net` bind mount allows the network settings required by the gateway; it does not change the host default route. Startup checks permissions before account setup or network changes.
+
 The container requires `OBWEB_LAN_INTERFACE` (the interface connected to the client LAN). Account setup is optional: omit both `OBWEB_USERNAME` and `OBWEB_REO_CODE` to start only the bridge. `OBWEB_RUN_MODE` is internal and set automatically. Compose users can pass the same variables under `environment:`.
 
 Before running the image for the first time, identify the interface to use by running the following command to list the available interfaces:
@@ -33,6 +35,7 @@ Docker creates the named volume on first use and keeps it between runs. The netw
 docker run --rm --network host \
   --cap-add NET_ADMIN --cap-add SYS_ADMIN \
   --device /dev/net/tun:/dev/net/tun \
+  --mount type=bind,src=/proc/sys/net,dst=/proc/sys/net \
   --security-opt seccomp=unconfined \
   --mount type=volume,src=obweb-bridge-data,dst=/var/lib/obweb-bridge \
   -e OBWEB_LAN_INTERFACE=enp3s0 \

@@ -1,5 +1,6 @@
 """Ephemeral Linux routing in a dedicated namespace, with recorded undo actions."""
 import ctypes
+import errno
 import fcntl
 import ipaddress
 import json
@@ -23,8 +24,55 @@ TRANSIT_POOLS = tuple(map(ipaddress.ip_network, (
 )))
 
 
+class LocalNetworkError(RuntimeError):
+    """Safe local diagnostics, without raw command arguments or stderr."""
+
+
+def command_label(args):
+    if args[:3] == ['ip', 'netns', 'exec']:
+        return 'namespace ' + command_label(args[4:])
+    words = [word for word in args[1:] if word in
+             {'netns', 'link', 'route', 'address', 'rule', 'add', 'delete', 'show', 'list', 'tables', 'table', 'set', 'replace', 'flush'}]
+    tool = args[0] if args[0] in ('ip', 'nft', 'sysctl') else 'local command'
+    return ' '.join([tool, *words[:3]])
+
+
 def command(args, text=None, check=True):
-    return subprocess.run(args, input=text, text=True, capture_output=True, check=check, env={**os.environ, 'LC_ALL': 'C'})
+    try:
+        return subprocess.run(args, input=text, text=True, capture_output=True, check=check, env={**os.environ, 'LC_ALL': 'C'})
+    except subprocess.CalledProcessError as error:
+        # stderr may echo an entire nft input script. Report only known error
+        # categories; never echo arguments, stdout, input text or raw stderr.
+        stderr = error.stderr or ''
+        if isinstance(stderr, bytes):
+            stderr = stderr.decode('utf-8', errors='replace')
+        reason = next((value for value in ('operation not permitted', 'permission denied',
+                      'read-only file system', 'file exists', 'no such file or directory',
+                      'device or resource busy', 'invalid argument', 'operation not supported')
+                      if value in stderr.lower()), 'unspecified local failure')
+        detail = f'Local network command failed: {command_label(args)} (exit {error.returncode}; {reason}).'
+        if reason in ('operation not permitted', 'permission denied'):
+            detail += (' Host networking requires administrative access to its network namespace.'
+                       ' For containers, use sudo podman or a rootful Docker daemon; rootless --cap-add is insufficient.')
+        elif reason == 'read-only file system':
+            detail += ' The container must allow the required network sysctl writes; see the container guide.'
+        raise LocalNetworkError(detail) from None
+
+
+def require_network_admin():
+    # Read-only probes: no rules or sysctl values are changed.
+    command(['nft', '-j', 'list', 'tables'])
+    try:
+        fd = os.open('/proc/sys/net/ipv4/ip_forward', os.O_WRONLY)
+    except OSError as error:
+        if error.errno == errno.EROFS:
+            raise LocalNetworkError('Container network sysctls are read-only. Add '
+                                    '--mount type=bind,src=/proc/sys/net,dst=/proc/sys/net '
+                                    'to the rootful container run command.') from None
+        raise LocalNetworkError(f'Cannot access the required network sysctl (OS error {error.errno}).') from None
+    else:
+        os.close(fd)
+
 
 
 def list_namespaces():
@@ -250,6 +298,29 @@ class Network:
         if undo:
             self.remember(undo)
 
+    def claim_state(self):
+        # Images and named volumes may supply an empty directory. Claim the
+        # owner file atomically so two starters cannot adopt that directory.
+        if STATE.is_symlink():
+            raise RuntimeError('The runtime state directory must not be a symbolic link')
+        STATE.mkdir(mode=0o700, exist_ok=True)
+        if any(STATE.iterdir()):
+            raise RuntimeError('Runtime state already exists; use --cleanup before restarting')
+        try:
+            fd = os.open(STATE / 'owner.json', os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        except FileExistsError:
+            raise RuntimeError('Runtime state is already claimed by another startup') from None
+        self.owned = True
+        with os.fdopen(fd, 'w') as owner_file:
+            owner = {'pid': os.getpid(), 'start': Path('/proc/self/stat').read_text().split(') ', 1)[1].split()[19]}
+            json.dump(owner, owner_file)
+        if os.geteuid() == 0:
+            os.chown(STATE, 0, 0)
+        STATE.chmod(0o700)
+        fd = os.open(STATE / 'undo.json', os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(fd, 'w') as journal:
+            journal.write('[]')
+
     def setup(self, mac):
         if os.geteuid():
             raise RuntimeError('Running the gateway requires sudo; the plan and tests do not')
@@ -261,12 +332,7 @@ class Network:
         tables = json.loads(command(['nft', '-j', 'list', 'tables']).stdout)
         if any(x.get('table', {}).get('name') == TABLE for x in tables['nftables']):
             raise RuntimeError('Reserved nftables table already exists')
-        STATE.mkdir(mode=0o700)  # Exclusive claim; never overwrite another process's state.
-        self.owned = True
-        owner = {'pid': os.getpid(), 'start': Path('/proc/self/stat').read_text().split(') ', 1)[1].split()[19]}
-        (STATE / 'owner.json').write_text(json.dumps(owner))
-        (STATE / 'owner.json').chmod(0o600)
-        (STATE / 'undo.json').write_text('[]')
+        self.claim_state()
         (STATE / 'undo.json').chmod(0o600)
         self.run(['ip', 'netns', 'add', NS], ['ip', 'netns', 'delete', NS])
         self.run(['ip', 'link', 'add', VETH, 'type', 'veth', 'peer', 'name', PEER],

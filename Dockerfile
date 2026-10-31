@@ -9,7 +9,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates iproute2 nftables procps util-linux \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --uid 10001 --shell /usr/sbin/nologin obweb \
-    && mkdir -p /app /var/lib/obweb-bridge/state /var/lib/obweb-bridge/runtime /run/netns \
+    && mkdir -p /app /var/lib/obweb-bridge/state /run/netns \
     && chown -R obweb:obweb /var/lib/obweb-bridge
 
 WORKDIR /app

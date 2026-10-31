@@ -56,6 +56,7 @@ def show(available):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--list-interfaces', action='store_true')
+    parser.add_argument('--check-network-admin', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
     try:
         available = interfaces()
@@ -91,6 +92,14 @@ def main():
         show(available)
         log('Startup blocked before login or networking. Set the variables and recreate the container.')
         return 2
+    if args.check_network_admin:
+        from network import require_network_admin, LocalNetworkError
+        try:
+            require_network_admin()
+        except LocalNetworkError as error:
+            log(str(error))
+            log('Startup blocked before account setup or network changes.')
+            return 2
     return 0
 
 
