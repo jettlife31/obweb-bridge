@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+from paths import ROOT
 import re
 import secrets
 import tempfile
@@ -82,7 +83,7 @@ def save_state(path, value):
 def generated_card_directory(container=False):
     if container:
         return state_path().parent / 'memcards'
-    return Path(__file__).resolve().parent / 'generated-memcards'
+    return ROOT / 'generated-memcards'
 
 
 def prepare_memory_card(name, container=False):

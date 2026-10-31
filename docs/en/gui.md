@@ -5,7 +5,7 @@
 The GUI is the default for native Windows and Linux. The same Python window controls both systems; terminal launchers remain under [Other ways to run](terminal.md). The container does not use the GUI.
 
 
-On this experimental branch, Windows also offers **Another device on the LAN** with Npcap + WinDivert; use the [Windows LAN guide](windows-lan.md). The Linux LAN and local Ethernet modes retain their existing setup.
+Windows also offers **Another device on the LAN** as an experimental mode with Npcap + WinDivert; use the [Windows LAN guide](windows-lan.md). The Linux LAN and local Ethernet modes retain their existing setup.
 ## 1. Install prerequisites
 
 Complete the [game patch and account prerequisites](prerequisites.md).
@@ -72,4 +72,4 @@ Click **Start bridge** and approve the system prompt. Wait for **Ready** before 
 
 **Stop** and closing the window request the same network cleanup. The window waits for the worker to exit; do not force-close it while cleanup is running. No session or idle shutdown is imposed.
 
-Connection status and counters appear in the activity area. **Copy diagnostic report** copies platform information and activity messages, excluding the account fields. Windows gameplay and elevation still need runtime validation; Linux UI and isolated worker cleanup have been checked.
+Connection status and counters appear in the activity area. **Copy diagnostic report** copies platform information and activity messages, excluding the account fields.

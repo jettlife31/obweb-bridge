@@ -14,8 +14,8 @@ if (-not (Test-Path '.venv\Scripts\python.exe')) {
 $python = Join-Path $PSScriptRoot '.venv\Scripts\python.exe'
 & $python -m pip install --quiet -r requirements.txt
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-& $python login_web.py
+& $python app/login_web.py
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-if ($Adapter) { & $python ethernet.py --adapter $Adapter }
-else { & $python ethernet.py }
+if ($Adapter) { & $python app/ethernet.py --adapter $Adapter }
+else { & $python app/ethernet.py }
 exit $LASTEXITCODE

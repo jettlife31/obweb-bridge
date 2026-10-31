@@ -9,9 +9,9 @@ unset OBWEB_RUN_MODE OBWEB_USERNAME OBWEB_REO_CODE OBWEB_LAN_INTERFACE OBWEB_LAN
 unset OBWEB_CLIENT_IP OBWEB_WSS_URL OBWEB_WSS_ORIGIN OBWEB_RUNTIME_DIR
 if [ ! -x "$BASE_DIR/.venv/bin/python" ]; then python3 -m venv "$BASE_DIR/.venv"; fi
 "$BASE_DIR/.venv/bin/python" -m pip install --quiet -r "$BASE_DIR/requirements.txt"
-LAN_INTERFACE=$("$BASE_DIR/.venv/bin/python" "$BASE_DIR/select_interface.py")
+LAN_INTERFACE=$("$BASE_DIR/.venv/bin/python" "$BASE_DIR/app/select_interface.py")
 set -- --lan-interface "$LAN_INTERFACE"
-if PLAN_OUTPUT=$("$BASE_DIR/.venv/bin/python" "$BASE_DIR/gateway.py" "$@" 2>&1); then
+if PLAN_OUTPUT=$("$BASE_DIR/.venv/bin/python" "$BASE_DIR/app/gateway.py" "$@" 2>&1); then
   printf '%s\n' "$PLAN_OUTPUT"
 else
   PLAN_STATUS=$?
@@ -20,8 +20,8 @@ else
     *'A priority-1 policy already exists'*|*'Namespace already exists'*|*'Reserved interface already exists'*|*'Reserved nftables table already exists'*)
       if [ -d /run/outbreak-gateway ]; then
         printf 'Recorded bridge state found; attempting safe cleanup before retrying.\n' >&2
-        sudo "$BASE_DIR/.venv/bin/python" "$BASE_DIR/gateway.py" --cleanup
-        PLAN_OUTPUT=$("$BASE_DIR/.venv/bin/python" "$BASE_DIR/gateway.py" "$@")
+        sudo "$BASE_DIR/.venv/bin/python" "$BASE_DIR/app/gateway.py" --cleanup
+        PLAN_OUTPUT=$("$BASE_DIR/.venv/bin/python" "$BASE_DIR/app/gateway.py" "$@")
         printf '%s\n' "$PLAN_OUTPUT"
       else
         exit "$PLAN_STATUS"
@@ -38,6 +38,6 @@ if [ -z "$TRANSIT_NETWORK" ] || [ -z "$ROUTE_TABLE" ]; then
 fi
 set -- "$@" --transit-network "$TRANSIT_NETWORK" --route-table "$ROUTE_TABLE"
 env -u OBWEB_RUN_MODE -u OBWEB_USERNAME -u OBWEB_REO_CODE \
-  "$BASE_DIR/.venv/bin/python" "$BASE_DIR/login_web.py"
+  "$BASE_DIR/.venv/bin/python" "$BASE_DIR/app/login_web.py"
 printf '\nAll IPv4 traffic routed from LAN clients will use WSS. Wait for READY. Press Ctrl+C to stop.\n'
-exec sudo "$BASE_DIR/.venv/bin/python" "$BASE_DIR/gateway.py" "$@" --run
+exec sudo "$BASE_DIR/.venv/bin/python" "$BASE_DIR/app/gateway.py" "$@" --run

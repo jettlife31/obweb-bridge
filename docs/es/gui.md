@@ -5,7 +5,7 @@
 La GUI es la opción predeterminada para Windows y Linux nativos. La misma ventana Python controla ambos sistemas; los iniciadores de terminal siguen en [Otras formas de ejecutar](terminal.md). El contenedor no utiliza la GUI.
 
 
-En esta branch experimental, Windows también ofrece **Another device on the LAN** con Npcap + WinDivert; sigue la [guía LAN en Windows](windows-lan.md). Los modos LAN en Linux y Ethernet local conservan su configuración.
+Windows también ofrece el modo experimental **Another device on the LAN** con Npcap + WinDivert; sigue la [guía LAN en Windows](windows-lan.md). Los modos LAN en Linux y Ethernet local conservan su configuración.
 ## 1. Instala los requisitos
 
 Completa los [requisitos de parche del juego y cuenta](prerequisites.md).
@@ -72,4 +72,4 @@ Pulsa **Start bridge** y acepta la solicitud del sistema. Espera **Ready** antes
 
 **Stop** y cerrar la ventana solicitan la misma limpieza de red. La ventana espera a que termine el auxiliar; no fuerces el cierre durante la limpieza. No hay apagado por duración o inactividad.
 
-El estado de conexión y los contadores aparecen en el área de actividad. **Copy diagnostic report** copia información de la plataforma y mensajes de actividad, excluyendo los campos de la cuenta. Las partidas y la elevación en Windows aún necesitan validación real; se comprobaron la ventana Linux y la limpieza del auxiliar en un entorno aislado.
+El estado de conexión y los contadores aparecen en el área de actividad. **Copy diagnostic report** copia información de la plataforma y mensajes de actividad, excluyendo los campos de la cuenta.

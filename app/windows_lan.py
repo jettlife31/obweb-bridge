@@ -9,7 +9,7 @@ import struct
 import sys
 import threading
 
-ROOT = Path(__file__).resolve().parent
+from paths import ROOT
 
 
 def interfaces():

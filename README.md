@@ -2,7 +2,7 @@
 
 [English](README.md) · [Português (Brasil)](README.PTBR.md) · [Español](README.ES.md)
 
-A bridge that connects consoles and emulators to Outbreak Web over its Ethernet WebSocket transport. Run it on Windows or Linux for PCSX2 on the same computer, or run the LAN gateway on native Linux or in a Linux container for Android, a physical PS2 and other clients. The emulator does not need to be modified.
+A bridge that connects consoles and emulators to Outbreak Web over its Ethernet WebSocket transport. Run it on Windows or Linux for PCSX2 on the same computer or for LAN clients such as Android and a physical PS2. The Windows LAN gateway is experimental; Linux also supports the gateway in a container. The emulator does not need to be modified.
 
 
 Account and memory-card tools are optional. The bridge starts independently; your account is used when logging into the game.
@@ -13,10 +13,9 @@ Account and memory-card tools are optional. The bridge starts independently; you
 |---|---|---|---|---|
 | Native Linux | Yes | Yes | Yes | Yes |
 | Container on Linux | No | Yes | Yes | Yes |
-| Native Windows | Yes | No | No | No |
-| Windows LAN (experimental) | — | Pending validation | Pending validation | Pending validation |
+| Native Windows | Yes | Experimental | Experimental | Experimental |
 
-The experimental Windows LAN backend is available on this branch; see the [native Windows LAN guide](docs/en/windows-lan.md). It still requires Windows hardware/gameplay validation.
+The native Windows LAN gateway remains **experimental**; see the [Windows LAN guide](docs/en/windows-lan.md).
 
 The container provides only the LAN gateway and requires Docker Engine on Linux. Docker Desktop on Windows is not supported for this mode.
 

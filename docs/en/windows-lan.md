@@ -2,7 +2,7 @@
 
 [Guide index](../../README.md) · [English](../en/windows-lan.md) · [Português (Brasil)](../pt-br/windows-lan.md) · [Español](../es/windows-lan.md)
 
-This experimental mode is available on `feature/windows-native-gateway`. It connects Android, a physical PS2 or another LAN computer without WSL or containers. Windows NIC forwarding and gameplay still require validation on real hardware. For PCSX2 on this computer, keep using the proven [local Ethernet mode](windows.md).
+This **experimental** mode connects Android, a physical PS2 or another LAN computer without WSL or containers. Compatibility can vary with the network adapter and driver. For PCSX2 on this computer, keep using the proven [local Ethernet mode](windows.md).
 
 ## 1. Prepare Windows
 

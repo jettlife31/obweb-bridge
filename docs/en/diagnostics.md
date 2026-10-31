@@ -7,7 +7,7 @@ Before starting, complete the [prerequisites](prerequisites.md). Run commands fr
 With the bridge running, use another terminal:
 
 ```sh
-sudo .venv/bin/python diagnose.py --lan-interface INTERFACE --pcsx2-ip PS2_IP --seconds 45
+sudo .venv/bin/python app/diagnose.py --lan-interface INTERFACE --pcsx2-ip PS2_IP --seconds 45
 ```
 
 For local Ethernet mode, use the PS2 IP assigned by remote DHCP, visible in the game network settings. The diagnostic monitors only `obw-pcsx2` for that guest IP and reports link counters and protocol metadata without recording payloads, MAC addresses, DNS names, credentials, or IP addresses. To show only the DNS question names in the terminal for this PS2 capture, explicitly add `--show-dns-names`; this does not save them. For a separate LAN client, omit `--pcsx2-ip` and use `--client-ip CLIENT_IP` to limit the capture to that device.

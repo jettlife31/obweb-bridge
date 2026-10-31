@@ -7,5 +7,5 @@ if (-not (Test-Path '.venv\Scripts\python.exe')) {
 $python = Join-Path $PSScriptRoot '.venv\Scripts\python.exe'
 & $python -m pip install --quiet -r requirements.txt
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-& $python gui.py
+& $python app/gui.py
 exit $LASTEXITCODE

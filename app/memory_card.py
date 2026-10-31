@@ -7,13 +7,14 @@ import re
 import struct
 import tempfile
 
+from paths import ROOT
 from third_party.mymc import ps2mc
 
 ACCOUNT_DIRECTORY = b'/BASLUS-20765NET'
 ACCOUNT_FILE = ACCOUNT_DIRECTORY + b'/BASLUS-20765NET'
 ACCOUNT_OFFSET = 0xAF0
 ACCOUNT_SIZE = 16
-ASSETS = Path(__file__).resolve().parent / 'assets' / 'outbreak-file1'
+ASSETS = ROOT / 'assets' / 'outbreak-file1'
 CARD_BYTES = 8650752  # 8 MiB data, 512-byte pages plus 16-byte ECC spare.
 
 
