@@ -6,7 +6,7 @@ This **experimental** mode connects Android, a physical PS2 or another LAN compu
 
 ## 1. Prepare Windows
 
-Complete the [prerequisites](prerequisites.md), install 64-bit Python and install [Npcap separately](https://npcap.com/#download). Download the official [WinDivert 2.2 x64 package](https://github.com/basil00/WinDivert/releases/tag/v2.2.2). Keep `WinDivert.dll` and its signed `WinDivert64.sys` together in the application's `third_party/WinDivert/x64` folder, or select the DLL when asked. The application does not download or redistribute these drivers. OpenVPN is needed for local PCSX2 Ethernet mode only.
+Complete the [prerequisites](prerequisites.md), install 64-bit Python and install [Npcap separately](https://npcap.com/#download). Download the official [WinDivert x64 package](https://github.com/basil00/WinDivert/releases/latest). Keep `WinDivert.dll` and its signed `WinDivert64.sys` together in the application's `third_party/WinDivert/x64` folder, or select the DLL when asked. The application does not download or redistribute these drivers. OpenVPN is needed for local PCSX2 Ethernet mode only.
 
 Leave Windows Internet Connection Sharing and IP forwarding disabled on the selected interface. Do not change the PC's own gateway, DNS or routes.
 

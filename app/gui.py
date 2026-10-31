@@ -181,7 +181,7 @@ class BridgeApp:
         if sys.platform == 'win32':
             links += [('Npcap (separate installation)', 'https://npcap.com/#download'),
                       ('OpenVPN Community — not Connect', 'https://openvpn.net/community/'),
-                      ('WinDivert — Windows LAN gateway only', 'https://github.com/basil00/WinDivert/releases/tag/v2.2.2')]
+                      ('WinDivert — Windows LAN gateway only', 'https://github.com/basil00/WinDivert/releases/latest')]
         for label, url in links:
             ttk.Button(tab, text=label, command=lambda u=url: webbrowser.open(u)).pack(anchor='w', pady=3)
         ttk.Button(tab, text='Check again', command=self.check_setup).pack(anchor='w', pady=10)
@@ -307,7 +307,7 @@ class BridgeApp:
                 lines.append('Npcap: ' + ('installed' if (system / 'Npcap/wpcap.dll').is_file() else 'not found — install Npcap separately from the official link below'))
                 from ethernet_adapter import locate_tapctl
                 lines.append('OpenVPN tapctl: ' + ('found' if locate_tapctl() else 'not found automatically — install Community or locate tapctl.exe when asked'))
-                lines.append('Windows LAN gateway: experimental; WinDivert 2.2 x64 DLL + signed driver required. OpenVPN is needed only for local PCSX2.')
+                lines.append('Windows LAN gateway: experimental; WinDivert x64 DLL + signed driver required. OpenVPN is needed only for local PCSX2.')
                 lines.append('Network setup requests Administrator approval when you press Start.')
             else:
                 for name in ('ip', 'nft', 'sysctl', 'pkexec'):

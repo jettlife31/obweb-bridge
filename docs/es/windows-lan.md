@@ -6,7 +6,7 @@ Este modo **experimental** conecta Android, una PS2 real u otro PC de la LAN sin
 
 ## 1. Prepara Windows
 
-Completa los [requisitos previos](prerequisites.md), instala Python de 64 bits e instala [Npcap por separado](https://npcap.com/#download). Descarga el paquete oficial [WinDivert 2.2 x64](https://github.com/basil00/WinDivert/releases/tag/v2.2.2). Mantén `WinDivert.dll` y su controlador firmado `WinDivert64.sys` juntos en la carpeta `third_party/WinDivert/x64` de la aplicación, o selecciona la DLL cuando se solicite. La aplicación no descarga ni redistribuye estos controladores. OpenVPN solo se necesita para Ethernet local de PCSX2.
+Completa los [requisitos previos](prerequisites.md), instala Python de 64 bits e instala [Npcap por separado](https://npcap.com/#download). Descarga el paquete oficial [WinDivert x64](https://github.com/basil00/WinDivert/releases/latest). Mantén `WinDivert.dll` y su controlador firmado `WinDivert64.sys` juntos en la carpeta `third_party/WinDivert/x64` de la aplicación, o selecciona la DLL cuando se solicite. La aplicación no descarga ni redistribuye estos controladores. OpenVPN solo se necesita para Ethernet local de PCSX2.
 
 Deja desactivados el uso compartido de Internet y el reenvío IP de Windows en la interfaz seleccionada. No cambies la puerta de enlace, DNS ni rutas del propio PC.
 

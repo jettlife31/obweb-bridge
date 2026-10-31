@@ -157,7 +157,7 @@ def locate_windivert():
     if path.is_dir():
         path = path / 'WinDivert.dll'
     if not text or path.name.lower() != 'windivert.dll' or not path.is_file() or not (path.parent / 'WinDivert64.sys').is_file():
-        raise RuntimeError('Download the official WinDivert 2.2 x64 package and keep its DLL and signed driver together.')
+        raise RuntimeError('Download the official WinDivert x64 package and keep its DLL and signed driver together.')
     return path.resolve()
 
 
