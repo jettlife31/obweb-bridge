@@ -75,3 +75,5 @@ Pulsa **Start bridge** y acepta la solicitud del sistema. Espera **Ready** antes
 El estado de conexión y los contadores aparecen en el área de actividad. **Copy diagnostic report** copia información de la plataforma y mensajes de actividad, excluyendo los campos de la cuenta.
 
 Durante Stop, el registro distingue el envío del comando, la confirmación del auxiliar de red, la cancelación del controlador y la eliminación del adaptador. Si sigue bloqueado, usa **Copy diagnostic report** cuando aparezcan los mensajes de espera. Incluye el PID del auxiliar, identificadores del código, etapa actual, tiempo desde las señales de actividad y funciones de la aplicación, sin contenido de paquetes, datos de cuenta ni variables locales.
+
+El informe también identifica el receptor de comandos y qué señal de Stop reconoció el auxiliar. Windows dispone de una señal nativa adicional por ejecución, independiente del canal TCP de control; ambas solicitan la misma limpieza.

@@ -75,3 +75,5 @@ Click **Start bridge** and approve the system prompt. Wait for **Ready** before 
 Connection status and counters appear in the activity area. **Copy diagnostic report** copies platform information and activity messages, excluding the account fields.
 
 During Stop, the activity log distinguishes command delivery, acknowledgement by the network worker, driver cancellation and adapter removal. If it remains stuck, use **Copy diagnostic report** after the waiting messages appear. It includes the worker PID, code fingerprints, current phase, heartbeat ages and application function locations, without packet contents, account data or local variables.
+
+The report also identifies the command receiver and which Stop signal the worker recognized. Windows has an additional per-session native Stop signal independent of the TCP control channel; both request the same cleanup.

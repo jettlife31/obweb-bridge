@@ -4,6 +4,7 @@ No pickle, shell commands, account credentials or remote packet data are sent.
 """
 import json
 import struct
+import select
 import threading
 
 LIMIT = 65536
@@ -13,6 +14,7 @@ class Channel:
     def __init__(self, sock):
         self.sock = sock
         self.lock = threading.Lock()
+        self.buffer = bytearray()
 
     def send(self, message):
         data = json.dumps(message, ensure_ascii=True).encode('ascii')
@@ -21,23 +23,47 @@ class Channel:
         with self.lock:
             self.sock.sendall(struct.pack('!I', len(data)) + data)
 
-    def _read(self, count):
-        data = bytearray()
-        while len(data) < count:
-            chunk = self.sock.recv(count - len(data))
-            if not chunk:
-                raise EOFError('Local control connection closed')
-            data.extend(chunk)
-        return bytes(data)
-
-    def receive(self):
-        count = struct.unpack('!I', self._read(4))[0]
+    def _message(self):
+        if len(self.buffer) < 4:
+            return None
+        count = struct.unpack('!I', self.buffer[:4])[0]
         if not 0 < count <= LIMIT:
             raise ValueError('Invalid local control message length')
-        value = json.loads(self._read(count))
+        if len(self.buffer) < count + 4:
+            return None
+        data = bytes(self.buffer[4:count + 4])
+        del self.buffer[:count + 4]
+        value = json.loads(data)
         if not isinstance(value, dict) or not isinstance(value.get('type'), str):
             raise ValueError('Invalid local control message')
         return value
+
+    def _receive_chunk(self):
+        chunk = self.sock.recv(LIMIT + 4)
+        if not chunk:
+            raise EOFError('Local control connection closed')
+        self.buffer.extend(chunk)
+
+    def receive(self):
+        while True:
+            message = self._message()
+            if message is not None:
+                return message
+            self._receive_chunk()
+
+    def poll_message(self, timeout=0):
+        """A single reader can poll without losing a partial length/body.
+
+        Used by the worker progress monitor, so it can keep reporting health
+        even when a command arrives split across TCP receives.
+        """
+        message = self._message()
+        if message is not None:
+            return message
+        if not select.select([self.sock], [], [], timeout)[0]:
+            return None
+        self._receive_chunk()
+        return self._message()
 
     def finish_sending(self):
         """Keep receiving cleanup reports, but guarantee EOF at the peer."""
