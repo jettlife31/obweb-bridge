@@ -142,6 +142,7 @@ class WindowsTap:
         self.dhcp_changed = False
         self.stopping = threading.Event()
         self._io_lock = threading.Lock()
+        self._handle_lock = threading.Lock()
         self._read_lock = threading.Lock()
         self._read_pending = None
 
@@ -359,10 +360,24 @@ class WindowsTap:
     def stop_io(self):
         # Called BEFORE asyncio.run joins executor threads. Closing the adapter
         # only in __exit__ is too late: that runs after the executor has joined.
-        with self._io_lock:
-            self.stopping.set()
+        first = not self.stopping.is_set()
+        self.stopping.set()
+        # Do not take the issuance lock here. Even an overlapped native call
+        # may still be inside the driver; cancellation must be able to run from
+        # the control thread while ReadFile/WriteFile holds that lock.
+        with self._handle_lock:
             if self.handle is not None:
-                self.kernel.CancelIoEx(self.handle, None)
+                result = self.kernel.CancelIoEx(self.handle, None)
+                error = 0 if result else ctypes.get_last_error()
+            else:
+                error = None
+        if first and error is not None:
+            if error == 0:
+                self._cleanup_log('Windows accepted the TAP cancellation request; pending I/O must still finish.')
+            elif error == 1168:
+                self._cleanup_log('Windows reported no pending TAP I/O to cancel.')
+            else:
+                self._cleanup_log(f'Windows TAP cancellation request failed (Windows error {error}).')
 
     @staticmethod
     def _cleanup_log(message):
@@ -382,8 +397,9 @@ class WindowsTap:
                     request = self._read_pending
                     self.kernel.GetOverlappedResult(self.handle, ctypes.byref(request.ov), ctypes.byref(request.count), True)
                     self._clear_read()
-                self.kernel.CloseHandle(self.handle)
-                self.handle = None
+                with self._handle_lock:
+                    self.kernel.CloseHandle(self.handle)
+                    self.handle = None
         if self.created:
             # tapctl accepts the interface GUID, not an interpolated shell command.
             if hasattr(self, 'guid'):

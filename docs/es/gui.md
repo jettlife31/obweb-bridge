@@ -73,3 +73,5 @@ Pulsa **Start bridge** y acepta la solicitud del sistema. Espera **Ready** antes
 **Stop** y cerrar la ventana solicitan la misma limpieza de red. La ventana espera a que termine el auxiliar; no fuerces el cierre durante la limpieza. No hay apagado por duración o inactividad.
 
 El estado de conexión y los contadores aparecen en el área de actividad. **Copy diagnostic report** copia información de la plataforma y mensajes de actividad, excluyendo los campos de la cuenta.
+
+Durante Stop, el registro distingue el envío del comando, la confirmación del auxiliar de red, la cancelación del controlador y la eliminación del adaptador. Si sigue bloqueado, usa **Copy diagnostic report** cuando aparezcan los mensajes de espera. Incluye el PID del auxiliar, identificadores del código, etapa actual, tiempo desde las señales de actividad y funciones de la aplicación, sin contenido de paquetes, datos de cuenta ni variables locales.

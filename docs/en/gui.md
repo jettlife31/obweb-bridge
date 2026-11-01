@@ -73,3 +73,5 @@ Click **Start bridge** and approve the system prompt. Wait for **Ready** before 
 **Stop** and closing the window request the same network cleanup. The window waits for the worker to exit; do not force-close it while cleanup is running. No session or idle shutdown is imposed.
 
 Connection status and counters appear in the activity area. **Copy diagnostic report** copies platform information and activity messages, excluding the account fields.
+
+During Stop, the activity log distinguishes command delivery, acknowledgement by the network worker, driver cancellation and adapter removal. If it remains stuck, use **Copy diagnostic report** after the waiting messages appear. It includes the worker PID, code fingerprints, current phase, heartbeat ages and application function locations, without packet contents, account data or local variables.
