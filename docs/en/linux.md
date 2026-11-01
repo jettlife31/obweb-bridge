@@ -10,8 +10,11 @@ Install Python 3.10+, Tkinter, `iproute2`, TUN/TAP support and a desktop authori
 
 ```sh
 sudo apt install python3-venv python3-tk iproute2 policykit-1
+chmod +x start-gui.sh
 ./start-gui.sh
 ```
+
+On Linux, give the launcher **execute** permission once with `chmod +x start-gui.sh`. Then open it with your file manager and choose **Run** or **Run in Terminal**, if offered. Some file managers require enabling executable scripts in their preferences. You can also start it from the terminal with `./start-gui.sh`.
 
 Run the GUI as your regular user, without sudo. Select **PCSX2 on this computer** and click **Start bridge**. The network helper requests authorization separately.
 

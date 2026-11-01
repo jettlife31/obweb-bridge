@@ -12,7 +12,7 @@ Cierra PCSX2 antes de instalar los requisitos:
 2. Descarga e instala [Npcap desde su sitio oficial](https://npcap.com/#download). Es necesario para que la interfaz `obw-pcsx2` aparezca en la lista PCAP de PCSX2.
 3. Descarga [OpenVPN Community Edition](https://openvpn.net/community/) (no OpenVPN Connect), abre el instalador y haz clic en **Install Now**.
 
-Después de instalar los requisitos, abre una ventana normal de PowerShell (sin Ejecutar como Administrador) y ejecuta:
+Haz doble clic en **start-gui.bat** en la carpeta de la aplicación como usuario normal. Abre PowerShell con `-ExecutionPolicy Bypass` solo para ese proceso. También puedes iniciarlo manualmente desde PowerShell:
 
 ```powershell
 .\start-gui.ps1

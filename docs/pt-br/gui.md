@@ -14,7 +14,9 @@ Use **Patch game** para preparar sua ISO original dos EUA antes de jogar. A guia
 Conclua os [pré-requisitos de patch do jogo e conta](prerequisites.md).
 
 - **Windows:** instale Python pelo site oficial, [Npcap](https://npcap.com/#download) separadamente e [OpenVPN Community](https://openvpn.net/community/) usando **Install Now**. OpenVPN Connect é outro produto.
-- **Linux:** instale Tkinter e um agente de autorização do desktop, além das dependências do modo da ponte. No Debian/Ubuntu:
+- **Linux:**
+
+No Linux, dê permissão de **execução** ao inicializador uma vez com `chmod +x start-gui.sh`. Depois, abra pelo gerenciador de arquivos e escolha **Executar** ou **Executar no terminal**, se disponível. Alguns gerenciadores exigem habilitar scripts executáveis nas preferências. O comando pelo terminal abaixo continua disponível. instale Tkinter e um agente de autorização do desktop, além das dependências do modo da ponte. No Debian/Ubuntu:
 
 ```sh
 sudo apt install python3-venv python3-tk iproute2 nftables procps policykit-1
@@ -24,7 +26,9 @@ sudo apt install python3-venv python3-tk iproute2 nftables procps policykit-1
 
 Execute na pasta do aplicativo como usuário comum. A configuração de rede pede autorização de administrador separadamente.
 
-**Windows — PowerShell:**
+**Windows:**
+
+Dê dois cliques em **start-gui.bat** na pasta do aplicativo como usuário comum. Ele abre o PowerShell com `-ExecutionPolicy Bypass` somente para esse processo. Você também pode iniciar manualmente pelo PowerShell:
 
 ```powershell
 .\start-gui.ps1
@@ -38,7 +42,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start-gui.ps1
 
 **Linux:**
 
+No Linux, dê permissão de **execução** ao inicializador uma vez com `chmod +x start-gui.sh`. Depois, abra pelo gerenciador de arquivos e escolha **Executar** ou **Executar no terminal**, se disponível. Alguns gerenciadores exigem habilitar scripts executáveis nas preferências. O comando pelo terminal abaixo continua disponível.
+
 ```sh
+chmod +x start-gui.sh
 ./start-gui.sh
 ```
 

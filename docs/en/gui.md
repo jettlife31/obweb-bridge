@@ -14,7 +14,9 @@ Use **Patch game** to prepare your original USA ISO before playing. It recognize
 Complete the [game patch and account prerequisites](prerequisites.md).
 
 - **Windows:** install Python from its official website, [Npcap](https://npcap.com/#download) separately, and [OpenVPN Community](https://openvpn.net/community/) using **Install Now**. OpenVPN Connect is a different product.
-- **Linux:** install Tkinter and a desktop authorization agent in addition to the dependencies for your bridge mode. On Debian/Ubuntu:
+- **Linux:**
+
+On Linux, give the launcher **execute** permission once with `chmod +x start-gui.sh`. Then open it with your file manager and choose **Run** or **Run in Terminal**, if offered. Some file managers require enabling executable scripts in their preferences. The terminal command below always remains available. install Tkinter and a desktop authorization agent in addition to the dependencies for your bridge mode. On Debian/Ubuntu:
 
 ```sh
 sudo apt install python3-venv python3-tk iproute2 nftables procps policykit-1
@@ -24,7 +26,9 @@ sudo apt install python3-venv python3-tk iproute2 nftables procps policykit-1
 
 Run from the application folder as your regular user. Network setup requests administrator approval separately.
 
-**Windows — PowerShell:**
+**Windows:**
+
+Double-click **start-gui.bat** in the application folder as a regular user. It opens PowerShell with `-ExecutionPolicy Bypass` for that process only. You can also start it manually from PowerShell:
 
 ```powershell
 .\start-gui.ps1
@@ -38,7 +42,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start-gui.ps1
 
 **Linux:**
 
+On Linux, give the launcher **execute** permission once with `chmod +x start-gui.sh`. Then open it with your file manager and choose **Run** or **Run in Terminal**, if offered. Some file managers require enabling executable scripts in their preferences. The terminal command below always remains available.
+
 ```sh
+chmod +x start-gui.sh
 ./start-gui.sh
 ```
 
