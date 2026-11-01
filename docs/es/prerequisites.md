@@ -10,7 +10,9 @@ Los iniciadores usan el Python instalado en el equipo y crean `.venv` e instalan
 
 ## 2. Aplica el parche a la imagen del juego
 
-Usa el parche xdelta correspondiente a tu imagen original de EE. UU.:
+En la [GUI](gui.md), abre **Patch game** y selecciona tu ISO original. La aplicación identifica Outbreak USA v2.00 o File #2 USA mediante su SHA-256 completo; **Apply patch** solo se habilita tras una coincidencia. Elige un nombre nuevo para la salida. Se conservan el original y los archivos existentes, y la copia guardada debe coincidir con el SHA-256 parcheado de abajo. La verificación y la copia muestran el progreso y pueden cancelarse. Reserva unos 4,7 GB libres para la copia. No necesitas instalar xdelta3 ni ejecutar como administrador.
+
+Como alternativa manual, usa el parche xdelta correspondiente:
 
 - Outbreak USA v2.00: [Resident Evil - Outbreak (USA) (v2.00).xdelta](../../xdelta/Resident%20Evil%20-%20Outbreak%20%28USA%29%20%28v2.00%29.xdelta)
   - SHA-256 de la ISO original: `69ae2c48e6f01e2605659feabb54eb9b82c63a809bdc8a78ad2d160b3c59a4a1`

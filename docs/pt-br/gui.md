@@ -6,6 +6,9 @@ A GUI é o padrão para execução nativa no Windows e no Linux. A mesma janela 
 
 
 O Windows também oferece o modo experimental **Another device on the LAN** com Npcap + WinDivert; siga o [guia de LAN no Windows](windows-lan.md). Os modos LAN no Linux e Ethernet local mantêm a configuração existente.
+
+Use **Patch game** para preparar sua ISO original dos EUA antes de jogar. A guia reconhece os dois jogos suportados pelo SHA-256 e verifica a cópia com patch sem exigir xdelta3. Veja as revisões e os hashes nos [pré-requisitos do patch](prerequisites.md#2-aplique-o-patch-à-imagem-do-jogo).
+
 ## 1. Instale os pré-requisitos
 
 Conclua os [pré-requisitos de patch do jogo e conta](prerequisites.md).

@@ -6,6 +6,9 @@ The GUI is the default for native Windows and Linux. The same Python window cont
 
 
 Windows also offers **Another device on the LAN** as an experimental mode with Npcap + WinDivert; use the [Windows LAN guide](windows-lan.md). The Linux LAN and local Ethernet modes retain their existing setup.
+
+Use **Patch game** to prepare your original USA ISO before playing. It recognizes both supported games by SHA-256 and verifies the patched copy without requiring xdelta3. See [game patch prerequisites](prerequisites.md#2-patch-your-game-image) for supported revisions and hashes.
+
 ## 1. Install prerequisites
 
 Complete the [game patch and account prerequisites](prerequisites.md).
