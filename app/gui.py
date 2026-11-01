@@ -16,6 +16,7 @@ from tkinter import filedialog, messagebox, scrolledtext, ttk
 import webbrowser
 
 import gui_accounts
+from gui_patch import PatchTab
 from gui_backend import BridgeController, ROOT
 import login_web as login
 
@@ -90,6 +91,8 @@ class BridgeApp:
         tabs.add(self.connection_tab, text='Connection')
         tabs.add(self.account_tab, text='Account & memory cards')
         tabs.add(self.setup_tab, text='Setup')
+        self.patch_tab = PatchTab(tabs)
+        tabs.add(self.patch_tab.frame, text='Patch game')
         self.tabs = tabs
         tabs.bind('<<NotebookTabChanged>>', self._load_account_tab)
         self._connection_widgets()
@@ -470,7 +473,7 @@ class BridgeApp:
                     self.status.set('Stopped')
                 self._append('Network worker exited.')
                 self._load_account_tab()
-        if self.closing and not self.controller.active and not self.account_busy:
+        if self.closing and not self.controller.active and not self.account_busy and not self.patch_tab.busy:
             self.root.destroy()
             return
         self.root.after(100, self._pump)
@@ -515,10 +518,13 @@ class BridgeApp:
 
     def close(self):
         self.closing = True
+        self.patch_tab.close()
         if self.controller.active:
             self.stop()
         elif self.account_busy:
             self.status.set('Finishing account setup before closing…')
+        elif self.patch_tab.busy:
+            self.status.set('Cancelling ISO operation before closing…')
         else:
             self.root.destroy()
 
