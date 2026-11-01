@@ -78,6 +78,7 @@ class BridgeController:
         self.stop_watch = None
         self.stop_delivery_lock = threading.Lock()
         self.stop_delivered = False
+        self.stop_signal = None
 
     @property
     def active(self):
@@ -126,6 +127,14 @@ class BridgeController:
             listener.listen(4)
             listener.settimeout(.3)
             token = secrets.token_hex(32)
+            if sys.platform == 'win32':
+                try:
+                    from windows_stop import StopSignal
+                    self.stop_signal = StopSignal(token, create=True)
+                    if self.cancelled.is_set():
+                        self.stop_signal.signal()
+                except OSError:
+                    self.emit({'type': 'log', 'line': 'Native Windows Stop event unavailable; using local control commands.'})
             self.emit({'type': 'status', 'message': 'Waiting for administrator approval…'})
             if self.cancelled.is_set():
                 return
@@ -196,6 +205,10 @@ class BridgeController:
                             self.emit({'type': 'log', 'line': 'Network cleanup is still in progress.'})
                             waiting = True
                 self.process = None
+            if self.stop_signal is not None:
+                with self.stop_delivery_lock:
+                    self.stop_signal.close()
+                    self.stop_signal = None
             self.finished.set()
             self.emit({'type': 'finished'})
 
@@ -205,6 +218,24 @@ class BridgeController:
             phase = message.get('phase')
             if phase in PHASES:
                 self.diagnostics['phase'] = phase
+            signal = message.get('windows_stop_signal')
+            if signal in ('not_used', 'available', 'received', 'unavailable', 'check_failed'):
+                self.diagnostics['windows_stop_signal'] = signal
+            reason = message.get('stop_reason')
+            if reason in ('none', 'command', 'windows_event', 'control_channel_closed', 'control_read_failed'):
+                self.diagnostics['stop_reason'] = reason
+            control_state = message.get('control_state')
+            if control_state in ('not_bound', 'polling', 'stop_received', 'eof', 'read_failed'):
+                self.diagnostics['control_state'] = control_state
+            control_last = message.get('control_last')
+            if control_last in ('none', 'stop', 'input', 'unknown'):
+                self.diagnostics['control_last'] = control_last
+            buffered = message.get('control_buffer_bytes')
+            if isinstance(buffered, int) and 0 <= buffered <= 2 * 65540:
+                self.diagnostics['control_buffer_bytes'] = buffered
+            control_count = message.get('control_count')
+            if isinstance(control_count, int) and control_count >= 0:
+                self.diagnostics['control_count'] = control_count
             pid = message.get('pid')
             if isinstance(pid, int) and 0 < pid < 2**32:
                 self.diagnostics['pid'] = pid
@@ -228,6 +259,12 @@ class BridgeController:
                 f'Worker code: {state.get("worker_code", "not reported")}',
                 f'Stop delivery: {state.get("stop_delivery", "not requested")}',
                 f'Stop acknowledged: {state.get("stop_ack", False)}',
+                f'Windows Stop event: {state.get("windows_stop_signal", "not reported")}',
+                f'Worker Stop source: {state.get("stop_reason", "not reported")}',
+                f'Control receiver: {state.get("control_state", "not reported")}',
+                f'Last control command: {state.get("control_last", "not reported")}',
+                f'Control commands received: {state.get("control_count", "not reported")}',
+                f'Control buffered bytes: {state.get("control_buffer_bytes", "not reported")}',
                 f'Worker phase: {PHASES.get(state.get("phase"), "not reported")}',
                 'Last worker heartbeat: ' + (f'{time.monotonic() - heartbeat:.1f}s ago' if heartbeat is not None else 'not received'),
                 'Network loop heartbeat: ' + (f'{state["loop_age"]}s ago' if state.get('loop_age') is not None else 'not observed'),
@@ -262,6 +299,12 @@ class BridgeController:
             if self.stop_delivered:
                 return True
             sent = False
+            if self.stop_signal is not None:
+                try:
+                    self.stop_signal.signal()
+                    self.emit({'type': 'log', 'line': 'Native Windows Stop event signalled.'})
+                except OSError:
+                    self.emit({'type': 'log', 'line': 'Native Windows Stop event failed; using the control channel.'})
             if channel is not None:
                 try:
                     channel.send({'type': 'stop'})

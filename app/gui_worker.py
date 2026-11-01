@@ -70,28 +70,30 @@ def run_worker(channel, config, progress=None):
         raise ValueError('Unsupported network setting')
     stopped = progress.stopped if progress else threading.Event()
     responses = queue.Queue(maxsize=1)
-    def monitor():
-        try:
-            while True:
-                message = channel.receive()
-                if message['type'] == 'stop':
-                    if progress:
-                        progress.request_stop('command')
-                    else:
-                        stopped.set()
-                        channel.send({'type': 'stop_ack', 'reason': 'command'})
-                    return
-                elif message['type'] == 'input' and isinstance(message.get('value'), str):
-                    try:
-                        responses.put_nowait(message['value'][:4096])
-                    except queue.Full:
-                        pass
-        except (EOFError, OSError, ValueError, RecursionError):
+    def on_message(message):
+        if message['type'] == 'stop':
             if progress:
-                progress.request_stop('control_channel_closed')
+                progress.request_stop('command')
             else:
                 stopped.set()
-    threading.Thread(target=monitor, daemon=True).start()
+                channel.send({'type': 'stop_ack', 'reason': 'command'})
+        elif message['type'] == 'input' and isinstance(message.get('value'), str):
+            try:
+                responses.put_nowait(message['value'][:4096])
+            except queue.Full:
+                pass
+    if progress:
+        # One monitor owns both command reception and health reports. A healthy
+        # heartbeat now means the command receiver itself is also being polled.
+        progress.bind_control(on_message)
+    else:
+        def monitor():
+            try:
+                while not stopped.is_set():
+                    on_message(channel.receive())
+            except (EOFError, OSError, ValueError, RecursionError):
+                stopped.set()
+        threading.Thread(target=monitor, name='worker-control', daemon=True).start()
     def prompt(text):
         channel.send({'type': 'prompt', 'text': text})
         while not stopped.is_set():
@@ -171,6 +173,13 @@ def main():
         connection.settimeout(None)
         if config['type'] != 'start':
             return 1
+        if sys.platform == 'win32':
+            try:
+                from windows_stop import StopSignal
+                progress.attach_stop_signal(StopSignal(args.token, create=False))
+            except OSError:
+                progress.stop_signal_state = 'unavailable'
+                channel.send({'type': 'log', 'line': 'Native Windows Stop event unavailable; using local control commands.'})
         progress.start()
         with contextlib.redirect_stdout(Output(channel, progress)), contextlib.redirect_stderr(Output(channel, progress)):
             run_worker(channel, config, progress)
