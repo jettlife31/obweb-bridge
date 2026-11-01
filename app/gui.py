@@ -391,6 +391,17 @@ class BridgeApp:
                         self.stop_button.configure(state='normal')
                 elif 'Tunnel offline;' in line:
                     self.status.set('Reconnecting…')
+            elif kind == 'progress':
+                if self.stopping:
+                    from gui_diagnostics import PHASES
+                    phase = PHASES.get(event.get('phase'))
+                    if event.get('phase') in ('starting', 'starting_network', 'opening_adapter', 'running'):
+                        self.status.set('Stop requested; awaiting worker acknowledgement…')
+                    elif phase:
+                        self.status.set('Stopping — ' + phase)
+            elif kind == 'stop_ack':
+                if self.stopping:
+                    self.status.set('Stop acknowledged; cleaning up…')
             elif kind == 'status':
                 if not self.stopping and not self.closing:
                     self.status.set(event['message'])
@@ -443,7 +454,7 @@ class BridgeApp:
             elif kind == 'prompt':
                 divert = 'WinDivert.dll' in event.get('text', '')
                 name = 'WinDivert.dll' if divert else 'tapctl.exe'
-                path = '' if self.closing else filedialog.askopenfilename(parent=self.root, title='Locate ' + name, filetypes=[(name, name)])
+                path = '' if self.closing or self.stopping else filedialog.askopenfilename(parent=self.root, title='Locate ' + name, filetypes=[(name, name)])
                 self.controller.send({'type': 'input', 'value': path})
             elif kind == 'error':
                 self.status.set('Setup failed')
@@ -470,7 +481,7 @@ class BridgeApp:
             self.root.clipboard_append(self.identity[key])
 
     def copy_report(self):
-        report = f'Outbreak Web Bridge\nOS: {platform.system()} {platform.release()}\nPython: {platform.python_version()}\nMode: {self.mode.get()}\nStatus: {self.status.get()}\n\n' + '\n'.join(self.history)
+        report = f'Outbreak Web Bridge\nOS: {platform.system()} {platform.release()}\nPython: {platform.python_version()}\nMode: {self.mode.get()}\nStatus: {self.status.get()}\n' + '\n'.join(self.controller.diagnostic_lines()) + '\n\n' + '\n'.join(self.history)
         self.root.clipboard_clear()
         self.root.clipboard_append(report)
 

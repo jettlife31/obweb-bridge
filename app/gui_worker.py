@@ -11,11 +11,13 @@ import sys
 import threading
 
 from gui_transport import Channel
+from gui_diagnostics import WorkerProgress
 
 
 class Output:
-    def __init__(self, channel):
+    def __init__(self, channel, progress=None):
         self.channel = channel
+        self.progress = progress
         self.buffer = ''
         self.lock = threading.Lock()
 
@@ -25,6 +27,8 @@ class Output:
             while '\n' in self.buffer:
                 line, self.buffer = self.buffer.split('\n', 1)
                 if line:
+                    if self.progress:
+                        self.progress.observe_line(line)
                     self.channel.send({'type': 'log', 'line': line[:8000]})
         return len(text)
 
@@ -32,11 +36,18 @@ class Output:
         pass
 
 
-async def until_stopped(coroutine, stopped):
+async def until_stopped(coroutine, stopped, progress=None):
     if stopped.is_set():
         coroutine.close()
         return
     task = asyncio.create_task(coroutine)
+    if progress:
+        loop = asyncio.get_running_loop()
+        def pulse():
+            if not progress.done.is_set():
+                progress.pulse()
+                loop.call_later(.5, pulse)
+        pulse()  # Stays alive during coroutine cancellation/executor shutdown.
     async def wait():
         while not stopped.is_set():
             await asyncio.sleep(.2)
@@ -51,28 +62,35 @@ async def until_stopped(coroutine, stopped):
         await asyncio.gather(task, waiter, return_exceptions=True)
 
 
-def run_worker(channel, config):
+def run_worker(channel, config, progress=None):
     mode = config.get('mode')
     if mode not in ('ethernet', 'gateway'):
         raise ValueError('Invalid bridge mode')
     if set(config) - {'type', 'mode', 'adapter', 'interface', 'lan_ip'}:
         raise ValueError('Unsupported network setting')
-    stopped = threading.Event()
+    stopped = progress.stopped if progress else threading.Event()
     responses = queue.Queue(maxsize=1)
     def monitor():
         try:
             while True:
                 message = channel.receive()
                 if message['type'] == 'stop':
-                    stopped.set()
-                    channel.send({'type': 'log', 'line': 'Stop received by the network worker.'})
+                    if progress:
+                        progress.request_stop('command')
+                    else:
+                        stopped.set()
+                        channel.send({'type': 'stop_ack', 'reason': 'command'})
+                    return
                 elif message['type'] == 'input' and isinstance(message.get('value'), str):
                     try:
                         responses.put_nowait(message['value'][:4096])
                     except queue.Full:
                         pass
         except (EOFError, OSError, ValueError, RecursionError):
-            stopped.set()
+            if progress:
+                progress.request_stop('control_channel_closed')
+            else:
+                stopped.set()
     threading.Thread(target=monitor, daemon=True).start()
     def prompt(text):
         channel.send({'type': 'prompt', 'text': text})
@@ -94,8 +112,15 @@ def run_worker(channel, config):
             if name is not None and (not isinstance(name, str) or len(name) > 256):
                 raise ValueError('Invalid adapter name')
             adapter = WindowsTap(name) if sys.platform == 'win32' else LinuxTap()
+            if progress:
+                progress.set_phase('opening_adapter')
+                callback = getattr(adapter, 'stop_io', None)
+                if callback:
+                    progress.register_stop(callback)
             with adapter:
-                asyncio.run(until_stopped(ethernet.run(adapter), stopped))
+                if progress:
+                    progress.set_phase('starting_network')
+                asyncio.run(until_stopped(ethernet.run(adapter), stopped, progress))
                 ethernet.log('Ethernet network threads stopped; cleaning up the adapter.')
             ethernet.log('Ethernet adapter cleanup complete.')
         else:
@@ -107,7 +132,7 @@ def run_worker(channel, config):
                     raise ValueError('Select a Windows LAN interface')
                 plan = inventory(interface, config.get('lan_ip'))
                 channel.send({'type': 'plan', 'plan': {k: plan[k] for k in ('lan_ip', 'client_network')}})
-                asyncio.run(until_stopped(windows_gateway.run(plan), stopped))
+                asyncio.run(until_stopped(windows_gateway.run(plan), stopped, progress))
                 return
             if sys.platform != 'linux':
                 raise ValueError('LAN gateway mode requires Windows or Linux')
@@ -118,7 +143,7 @@ def run_worker(channel, config):
             import gateway
             plan = inventory(interface, lan_ip=config.get('lan_ip') or None)
             channel.send({'type': 'plan', 'plan': plan})
-            asyncio.run(until_stopped(gateway.run(plan, gateway.WSS_URL, gateway.WSS_ORIGIN), stopped))
+            asyncio.run(until_stopped(gateway.run(plan, gateway.WSS_URL, gateway.WSS_ORIGIN), stopped, progress))
     finally:
         builtins.input = previous_input
 
@@ -139,14 +164,16 @@ def main():
     except OSError:
         return 1  # GUI closed during elevation; no network setup was attempted.
     channel = Channel(connection)
+    progress = WorkerProgress(channel, threading.Event())
     try:
-        channel.send({'type': 'hello', 'token': args.token})
+        channel.send({'type': 'hello', 'token': args.token, 'pid': os.getpid(), 'code': progress.code})
         config = channel.receive()
         connection.settimeout(None)
         if config['type'] != 'start':
             return 1
-        with contextlib.redirect_stdout(Output(channel)), contextlib.redirect_stderr(Output(channel)):
-            run_worker(channel, config)
+        progress.start()
+        with contextlib.redirect_stdout(Output(channel, progress)), contextlib.redirect_stderr(Output(channel, progress)):
+            run_worker(channel, config, progress)
         channel.send({'type': 'stopped'})
     except KeyboardInterrupt:
         with contextlib.suppress(OSError):
@@ -158,6 +185,7 @@ def main():
         with contextlib.suppress(OSError):
             channel.send({'type': 'error', 'message': message})
     finally:
+        progress.close()
         channel.close()
     return 0
 

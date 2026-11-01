@@ -39,6 +39,12 @@ class Channel:
             raise ValueError('Invalid local control message')
         return value
 
+    def finish_sending(self):
+        """Keep receiving cleanup reports, but guarantee EOF at the peer."""
+        import socket
+        with self.lock:
+            self.sock.shutdown(socket.SHUT_WR)
+
     def close(self):
         import socket
         try:
