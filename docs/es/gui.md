@@ -14,7 +14,9 @@ Usa **Patch game** para preparar tu ISO original de EE. UU. antes de jugar. La p
 Completa los [requisitos de parche del juego y cuenta](prerequisites.md).
 
 - **Windows:** instala Python desde su sitio oficial, [Npcap](https://npcap.com/#download) por separado y [OpenVPN Community](https://openvpn.net/community/) con **Install Now**. OpenVPN Connect es otro producto.
-- **Linux:** instala Tkinter y un agente de autorización del escritorio, además de las dependencias del modo del bridge. En Debian/Ubuntu:
+- **Linux:**
+
+En Linux, concede permiso de **ejecución** al iniciador una vez con `chmod +x start-gui.sh`. Después, ábrelo desde el gestor de archivos y elige **Ejecutar** o **Ejecutar en terminal**, si está disponible. Algunos gestores requieren habilitar los scripts ejecutables en las preferencias. El comando de terminal de abajo sigue disponible. instala Tkinter y un agente de autorización del escritorio, además de las dependencias del modo del bridge. En Debian/Ubuntu:
 
 ```sh
 sudo apt install python3-venv python3-tk iproute2 nftables procps policykit-1
@@ -24,7 +26,9 @@ sudo apt install python3-venv python3-tk iproute2 nftables procps policykit-1
 
 Ejecuta desde la carpeta de la aplicación como usuario normal. La configuración de red solicita autorización de administrador por separado.
 
-**Windows — PowerShell:**
+**Windows:**
+
+Haz doble clic en **start-gui.bat** en la carpeta de la aplicación como usuario normal. Abre PowerShell con `-ExecutionPolicy Bypass` solo para ese proceso. También puedes iniciarlo manualmente desde PowerShell:
 
 ```powershell
 .\start-gui.ps1
@@ -38,7 +42,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start-gui.ps1
 
 **Linux:**
 
+En Linux, concede permiso de **ejecución** al iniciador una vez con `chmod +x start-gui.sh`. Después, ábrelo desde el gestor de archivos y elige **Ejecutar** o **Ejecutar en terminal**, si está disponible. Algunos gestores requieren habilitar los scripts ejecutables en las preferencias. El comando de terminal de abajo sigue disponible.
+
 ```sh
+chmod +x start-gui.sh
 ./start-gui.sh
 ```
 

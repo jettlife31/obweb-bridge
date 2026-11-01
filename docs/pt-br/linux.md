@@ -10,8 +10,11 @@ Instale Python 3.10+, Tkinter, `iproute2`, suporte a TUN/TAP e um agente de auto
 
 ```sh
 sudo apt install python3-venv python3-tk iproute2 policykit-1
+chmod +x start-gui.sh
 ./start-gui.sh
 ```
+
+No Linux, dê permissão de **execução** ao inicializador uma vez com `chmod +x start-gui.sh`. Depois, abra pelo gerenciador de arquivos e escolha **Executar** ou **Executar no terminal**, se disponível. Alguns gerenciadores exigem habilitar scripts executáveis nas preferências. Você também pode iniciar pelo terminal com `./start-gui.sh`.
 
 Execute a GUI como usuário comum, sem sudo. Escolha **PCSX2 on this computer** e clique em **Start bridge**. O auxiliar de rede pede autorização separadamente.
 
