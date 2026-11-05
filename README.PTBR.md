@@ -2,7 +2,9 @@
 
 [English](README.md) · [Português (Brasil)](README.PTBR.md) · [Español](README.ES.md)
 
-Uma ponte que conecta consoles e emuladores ao Outbreak Web pelo transporte Ethernet via WebSocket. Execute-a no Windows ou no Linux para usar o PCSX2 no mesmo computador ou conectar Android, PS2 real e outros clientes pela LAN. O gateway LAN do Windows é experimental; no Linux, o gateway também pode rodar em container. O emulador não precisa ser modificado.
+<a href="https://www.buymeacoffee.com/zenaro147" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
+Uma ponte que conecta consoles e emuladores ao [Outbreak Web](https://outbreakweb.com/) pelo transporte Ethernet via WebSocket. Execute-a no Windows ou no Linux para usar o PCSX2 no mesmo computador ou conectar Android, PS2 real e outros clientes pela LAN. O gateway LAN do Windows é experimental; no Linux, o gateway também pode rodar em container. O emulador não precisa ser modificado.
 
 
 As ferramentas de conta e memory cards são opcionais. A ponte inicia de forma independente; sua conta é usada no login dentro do jogo.
