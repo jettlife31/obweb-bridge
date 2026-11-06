@@ -69,6 +69,8 @@ async def relay(ws, adapter, state=None):
 
     async def receive():
         async for frame in ws:
+            if isinstance(frame, str):
+                continue
             if not isinstance(frame, bytes) or not 14 <= len(frame) <= 65535:
                 raise Reconnect('Invalid Ethernet frame from WSS')
             if guest is not None:
